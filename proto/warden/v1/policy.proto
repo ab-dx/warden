@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package warden.v1;
+
+import "warden/v1/common.proto";
+
+// owns mandates and budget reservations. evaluate and reserve are one call so
+// the budget check and the hold happen under the same row lock.
+service PolicyService {
+  rpc EvaluateAndReserve(EvaluateAndReserveRequest) returns (EvaluateAndReserveResponse);
+  rpc SettleReservation(SettleReservationRequest) returns (SettleReservationResponse);
+  rpc ReleaseReservation(ReleaseReservationRequest) returns (ReleaseReservationResponse);
+  rpc CreateMandate(CreateMandateRequest) returns (CreateMandateResponse);
+  rpc RevokeMandate(RevokeMandateRequest) returns (RevokeMandateResponse);
+  rpc ListMandates(ListMandatesRequest) returns (ListMandatesResponse);
+}
+
+message EvaluateAndReserveRequest {
+  PaymentIntent intent = 1;
+}
+
+message EvaluateAndReserveResponse {
+  Outcome outcome = 1;
+  repeated Reason reasons = 2;
+  // set when the outcome allows money to move and an amount was held
+  optional string reservation_id = 3;
+  optional string mandate_id = 4;
+}
+
+message SettleReservationRequest {
+  string reservation_id = 1;
+  // what the upstream actually moved, which can be less than reserved
+  Money settled = 2;
+  string upstream_ref = 3;
+}
+
+message SettleReservationResponse {}
+
+message ReleaseReservationRequest {
+  string reservation_id = 1;
+  string reason = 2;
+}
+
+message ReleaseReservationResponse {}
+
+message CreateMandateRequest {
+  Mandate mandate = 1;
+}
+
+message CreateMandateResponse {
+  Mandate mandate = 1;
+}
+
+message RevokeMandateRequest {
+  string mandate_id = 1;
+}
+
+message RevokeMandateResponse {
+  Mandate mandate = 1;
+}
+
+message ListMandatesRequest {
+  string agent_id = 1;
+}
+
+message ListMandatesResponse {
+  repeated Mandate mandates = 1;
+}

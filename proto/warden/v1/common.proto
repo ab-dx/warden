@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package warden.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// decimal string in the currency's major unit, e.g. "40.00". never a float.
+message Money {
+  string value = 1;
+  string currency = 2;
+}
+
+enum Tier {
+  TIER_UNSPECIFIED = 0;
+  // read only
+  TIER_READ = 1;
+  // writes that move no money
+  TIER_WRITE = 2;
+  // commits a customer to a charge
+  TIER_COMMIT = 3;
+  // money leaves the account
+  TIER_MONEY_OUT = 4;
+}
+
+enum Outcome {
+  OUTCOME_UNSPECIFIED = 0;
+  OUTCOME_ALLOW = 1;
+  OUTCOME_ESCALATE = 2;
+  OUTCOME_DENY = 3;
+}
+
+message Reason {
+  string code = 1;
+  string message = 2;
+  string check = 3;
+}
+
+message PaymentIntent {
+  string call_id = 1;
+  string agent_id = 2;
+  string session_id = 3;
+  string tool = 4;
+  Tier tier = 5;
+  optional Money amount = 6;
+  optional string counterparty = 7;
+  // upstream ids the call refers to, e.g. capture_id, dispute_id
+  map<string, string> refs = 8;
+  // stable hash of the intent, used as the upstream idempotency key
+  string fingerprint = 9;
+}
+
+message Mandate {
+  string id = 1;
+  string agent_id = 2;
+  string user_id = 3;
+  // the user's own words
+  string task = 4;
+  Money max_per_call = 5;
+  Money max_total = 6;
+  Money spent = 7;
+  Money reserved = 8;
+  repeated string counterparties = 9;
+  repeated string tools = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  MandateStatus status = 12;
+}
+
+enum MandateStatus {
+  MANDATE_STATUS_UNSPECIFIED = 0;
+  MANDATE_STATUS_ACTIVE = 1;
+  MANDATE_STATUS_REVOKED = 2;
+  MANDATE_STATUS_EXPIRED = 3;
+}

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package warden.v1;
+
+import "google/protobuf/struct.proto";
+
+// the only service holding paypal credentials
+service ConnectorService {
+  rpc ListTools(ListToolsRequest) returns (ListToolsResponse);
+  rpc CallTool(CallToolRequest) returns (CallToolResponse);
+}
+
+message ListToolsRequest {}
+
+message ListToolsResponse {
+  repeated ToolDefinition tools = 1;
+}
+
+message ToolDefinition {
+  string name = 1;
+  string description = 2;
+  google.protobuf.Struct input_schema = 3;
+  // which upstream serves it: paypal mcp or a native rest tool
+  string upstream = 4;
+}
+
+message CallToolRequest {
+  string call_id = 1;
+  string tool = 2;
+  google.protobuf.Struct arguments = 3;
+  // forwarded as PayPal-Request-Id so a retried call can't move money twice
+  string idempotency_key = 4;
+}
+
+message CallToolResponse {
+  // false when paypal rejected the call, even if the mcp result said otherwise
+  bool ok = 1;
+  // mcp content blocks, passed back to the agent unchanged
+  google.protobuf.ListValue content = 2;
+  optional string upstream_ref = 3;
+  optional string error_code = 4;
+}

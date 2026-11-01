@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package warden.v1;
+
+import "google/protobuf/timestamp.proto";
+import "warden/v1/common.proto";
+
+// every message on a warden.*.v1 topic. the envelope fields mirror the outbox
+// columns, so the in-app relay and debezium produce the same records.
+message Event {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+  string aggregate_type = 3;
+  string aggregate_id = 4;
+  string producer = 5;
+
+  oneof payload {
+    CallReceived call_received = 10;
+    DecisionMade decision_made = 11;
+    ApprovalRequested approval_requested = 12;
+    ApprovalResolved approval_resolved = 13;
+    PaymentExecuted payment_executed = 14;
+    ReservationReleased reservation_released = 15;
+    UntrustedContentObserved untrusted_content_observed = 16;
+  }
+}
+
+message CallReceived {
+  PaymentIntent intent = 1;
+  // arguments with secrets and personal data removed
+  string redacted_args_json = 2;
+}
+
+message DecisionMade {
+  string call_id = 1;
+  Outcome outcome = 2;
+  repeated Reason reasons = 3;
+  DecidedBy decided_by = 4;
+  optional string mandate_id = 5;
+  optional string reservation_id = 6;
+}
+
+enum DecidedBy {
+  DECIDED_BY_UNSPECIFIED = 0;
+  DECIDED_BY_POLICY = 1;
+  DECIDED_BY_JUDGE = 2;
+  DECIDED_BY_HUMAN = 3;
+  DECIDED_BY_TIMEOUT = 4;
+}
+
+message ApprovalRequested {
+  string call_id = 1;
+  string approval_id = 2;
+  PaymentIntent intent = 3;
+  repeated Reason reasons = 4;
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+message ApprovalResolved {
+  string call_id = 1;
+  string approval_id = 2;
+  bool approved = 3;
+  string resolved_by = 4;
+}
+
+message PaymentExecuted {
+  string call_id = 1;
+  string tool = 2;
+  bool ok = 3;
+  optional Money amount = 4;
+  optional string upstream_ref = 5;
+  optional string error_code = 6;
+}
+
+message ReservationReleased {
+  string call_id = 1;
+  string reservation_id = 2;
+  string reason = 3;
+}
+
+message UntrustedContentObserved {
+  string session_id = 1;
+  string source_tool = 2;
+  // normalised tokens (emails, amounts, ids) found in content the agent read
+  repeated string tokens = 3;
+}

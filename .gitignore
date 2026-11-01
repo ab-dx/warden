@@ -9,3 +9,4 @@ coverage/
 !.env.example
 *.log
 .seed/
+packages/contracts/src/gen/

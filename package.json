@@ -10,7 +10,7 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck && tsc -p scripts",
-    "lint": "biome check .",
+    "lint": "biome check . && buf lint proto && buf format proto --diff --exit-code",
     "format": "biome format --write .",
     "paypal:tools": "node --env-file=.env scripts/dump-paypal-tools.ts",
     "infra:up": "docker compose up -d --wait",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",
+    "@bufbuild/buf": "1.75.0",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@paypal/mcp": "1.8.1",
     "@types/node": "^24.19.2",
