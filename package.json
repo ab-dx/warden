@@ -14,7 +14,8 @@
     "format": "biome format --write .",
     "paypal:tools": "node --env-file=.env scripts/dump-paypal-tools.ts",
     "infra:up": "docker compose up -d --wait",
-    "infra:down": "docker compose down"
+    "infra:down": "docker compose down",
+    "paypal:seed": "node --env-file=.env scripts/seed-sandbox.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",
