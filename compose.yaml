@@ -44,7 +44,11 @@ services:
       - kafka:/var/lib/kafka/data
     healthcheck:
       <<: *healthcheck
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null",
+        ]
 
   kafka-init:
     image: apache/kafka:4.4.0
@@ -57,7 +61,8 @@ services:
 
   temporal:
     image: temporalio/temporal:1.9.1
-    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
+    command:
+      ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
     ports: ["7233:7233", "8233:8233"]
     volumes:
       # mounted over the image home dir so the volume inherits the non-root owner
