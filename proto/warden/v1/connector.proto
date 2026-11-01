@@ -36,7 +36,7 @@ message CallToolResponse {
   // false when paypal rejected the call, even if the mcp result said otherwise
   bool ok = 1;
   // mcp content blocks, passed back to the agent unchanged
-  google.protobuf.ListValue content = 2;
+  repeated google.protobuf.Struct content = 2;
   optional string upstream_ref = 3;
   optional string error_code = 4;
 }
