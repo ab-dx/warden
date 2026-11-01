@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-01T07:52:53.623Z",
+  "capturedAt": "2026-11-01T07:55:03.552Z",
   "source": "https://mcp.sandbox.paypal.com/sse",
   "count": 46,
   "tools": [
@@ -18,7 +18,10 @@
             "description": "A note about why the seller is accepting the claim"
           }
         },
-        "required": ["dispute_id", "note"],
+        "required": [
+          "dispute_id",
+          "note"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -38,7 +41,9 @@
             "description": "The ID of the recurring invoice series to activate."
           }
         },
-        "required": ["recurring_series_id"],
+        "required": [
+          "recurring_series_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -58,7 +63,9 @@
             "description": "The ID of the invoice for which to cancel all scheduled automatic reminders."
           }
         },
-        "required": ["invoice_id"],
+        "required": [
+          "invoice_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -78,7 +85,9 @@
             "description": "The ID of the recurring invoice series to cancel."
           }
         },
-        "required": ["recurring_series_id"],
+        "required": [
+          "recurring_series_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -113,7 +122,9 @@
             "description": "Additional email addresses to which to send the cancellation."
           }
         },
-        "required": ["invoice_id"],
+        "required": [
+          "invoice_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -140,12 +151,17 @@
                 "description": "The reason for the cancellation of a subscription."
               }
             },
-            "required": ["reason"],
+            "required": [
+              "reason"
+            ],
             "additionalProperties": true,
             "description": "Payload for subscription cancellation."
           }
         },
-        "required": ["subscription_id", "payload"],
+        "required": [
+          "subscription_id",
+          "payload"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -171,12 +187,18 @@
               "properties": {
                 "conditional_rule_type": {
                   "type": "string",
-                  "enum": ["EARLY_PAYMENT_DISCOUNT", "AUTO_CANCEL"],
+                  "enum": [
+                    "EARLY_PAYMENT_DISCOUNT",
+                    "AUTO_CANCEL"
+                  ],
                   "description": "The type of conditional rule to apply to the invoice."
                 },
                 "conditional_rule_value_type": {
                   "type": "string",
-                  "enum": ["PERCENT", "AMOUNT"],
+                  "enum": [
+                    "PERCENT",
+                    "AMOUNT"
+                  ],
                   "description": "The type of the conditional rule value. Required, and only applicable, when conditional_rule_type is EARLY_PAYMENT_DISCOUNT."
                 },
                 "conditional_rule_value": {
@@ -203,19 +225,28 @@
                       "description": "The date the conditional rule expires, in yyyy-MM-dd format."
                     }
                   },
-                  "required": ["rule_expiry_condition", "condition_rule_end_date"],
+                  "required": [
+                    "rule_expiry_condition",
+                    "condition_rule_end_date"
+                  ],
                   "additionalProperties": false,
                   "description": "The expiry terms for the conditional rule."
                 }
               },
-              "required": ["conditional_rule_type", "rule_expiry_terms"],
+              "required": [
+                "conditional_rule_type",
+                "rule_expiry_terms"
+              ],
               "additionalProperties": false
             },
             "minItems": 1,
             "description": "The list of conditional rules to create for the invoice."
           }
         },
-        "required": ["invoice_id", "rules"],
+        "required": [
+          "invoice_id",
+          "rules"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -374,11 +405,21 @@
                           },
                           "phone_type": {
                             "type": "string",
-                            "enum": ["FAX", "HOME", "MOBILE", "OTHER", "PAGER"],
+                            "enum": [
+                              "FAX",
+                              "HOME",
+                              "MOBILE",
+                              "OTHER",
+                              "PAGER"
+                            ],
                             "description": "The type of phone number."
                           }
                         },
-                        "required": ["country_code", "national_number", "phone_type"],
+                        "required": [
+                          "country_code",
+                          "national_number",
+                          "phone_type"
+                        ],
                         "additionalProperties": false,
                         "description": "phone object"
                       },
@@ -491,7 +532,10 @@
                       "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                     }
                   },
-                  "required": ["currency_code", "value"],
+                  "required": [
+                    "currency_code",
+                    "value"
+                  ],
                   "additionalProperties": false,
                   "description": "The unit price of the item. Does not include tax or discount."
                 },
@@ -512,7 +556,10 @@
                       "description": "A note about the tax, used to track tax-related data."
                     }
                   },
-                  "required": ["name", "percent"],
+                  "required": [
+                    "name",
+                    "percent"
+                  ],
                   "additionalProperties": false,
                   "description": "tax object"
                 },
@@ -537,7 +584,10 @@
                           "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                         }
                       },
-                      "required": ["currency_code", "value"],
+                      "required": [
+                        "currency_code",
+                        "value"
+                      ],
                       "additionalProperties": false,
                       "description": "The discount as a fixed amount. Mutually exclusive with percent -- set only one."
                     }
@@ -552,11 +602,19 @@
                 },
                 "unit_of_measure": {
                   "type": "string",
-                  "enum": ["QUANTITY", "HOURS", "AMOUNT"],
+                  "enum": [
+                    "QUANTITY",
+                    "HOURS",
+                    "AMOUNT"
+                  ],
                   "description": "The unit of measure for the invoiced item"
                 }
               },
-              "required": ["name", "quantity", "unit_amount"],
+              "required": [
+                "name",
+                "quantity",
+                "unit_amount"
+              ],
               "additionalProperties": false,
               "description": "invoice line item object"
             },
@@ -594,7 +652,11 @@
             "description": "The minimum amount allowed for a partial payment, in the invoice's currency_code. Valid only when allow_partial_payment is true."
           }
         },
-        "required": ["currency_code", "primary_recipients", "items"],
+        "required": [
+          "currency_code",
+          "primary_recipients",
+          "items"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -610,7 +672,9 @@
         "properties": {
           "currencyCode": {
             "type": "string",
-            "enum": ["USD"],
+            "enum": [
+              "USD"
+            ],
             "description": "Currency code of the amount."
           },
           "items": {
@@ -645,7 +709,11 @@
                   "description": "The total cost of this line item."
                 }
               },
-              "required": ["name", "itemCost", "itemTotal"],
+              "required": [
+                "name",
+                "itemCost",
+                "itemTotal"
+              ],
               "additionalProperties": false
             },
             "maxItems": 50
@@ -729,7 +797,10 @@
             "default": "https://example.com/cancelUrl"
           }
         },
-        "required": ["currencyCode", "items"],
+        "required": [
+          "currencyCode",
+          "items"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -749,7 +820,11 @@
           },
           "type": {
             "type": "string",
-            "enum": ["PHYSICAL", "DIGITAL", "SERVICE"],
+            "enum": [
+              "PHYSICAL",
+              "DIGITAL",
+              "SERVICE"
+            ],
             "description": "The product type. Value is PHYSICAL, DIGITAL, or SERVICE."
           },
           "description": {
@@ -769,7 +844,10 @@
             "description": "The home page URL for the product."
           }
         },
-        "required": ["name", "type"],
+        "required": [
+          "name",
+          "type"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -785,7 +863,12 @@
         "properties": {
           "interval_unit": {
             "type": "string",
-            "enum": ["DAY", "WEEK", "MONTH", "YEAR"],
+            "enum": [
+              "DAY",
+              "WEEK",
+              "MONTH",
+              "YEAR"
+            ],
             "description": "The time unit for the recurring invoice cycle interval"
           },
           "interval_count": {
@@ -941,11 +1024,21 @@
                           },
                           "phone_type": {
                             "type": "string",
-                            "enum": ["FAX", "HOME", "MOBILE", "OTHER", "PAGER"],
+                            "enum": [
+                              "FAX",
+                              "HOME",
+                              "MOBILE",
+                              "OTHER",
+                              "PAGER"
+                            ],
                             "description": "The type of phone number."
                           }
                         },
-                        "required": ["country_code", "national_number", "phone_type"],
+                        "required": [
+                          "country_code",
+                          "national_number",
+                          "phone_type"
+                        ],
                         "additionalProperties": false,
                         "description": "phone object"
                       },
@@ -1060,7 +1153,10 @@
                       "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                     }
                   },
-                  "required": ["currency_code", "value"],
+                  "required": [
+                    "currency_code",
+                    "value"
+                  ],
                   "additionalProperties": false,
                   "description": "The unit price of the item. Does not include tax or discount."
                 },
@@ -1081,7 +1177,10 @@
                       "description": "A note about the tax, used to track tax-related data."
                     }
                   },
-                  "required": ["name", "percent"],
+                  "required": [
+                    "name",
+                    "percent"
+                  ],
                   "additionalProperties": false,
                   "description": "tax object"
                 },
@@ -1106,7 +1205,10 @@
                           "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                         }
                       },
-                      "required": ["currency_code", "value"],
+                      "required": [
+                        "currency_code",
+                        "value"
+                      ],
                       "additionalProperties": false,
                       "description": "The discount as a fixed amount. Mutually exclusive with percent -- set only one."
                     }
@@ -1121,11 +1223,19 @@
                 },
                 "unit_of_measure": {
                   "type": "string",
-                  "enum": ["QUANTITY", "HOURS", "AMOUNT"],
+                  "enum": [
+                    "QUANTITY",
+                    "HOURS",
+                    "AMOUNT"
+                  ],
                   "description": "The unit of measure for the invoiced item"
                 }
               },
-              "required": ["name", "quantity", "unit_amount"],
+              "required": [
+                "name",
+                "quantity",
+                "unit_amount"
+              ],
               "additionalProperties": false,
               "description": "invoice line item object"
             },
@@ -1186,7 +1296,10 @@
                 "type": "string"
               }
             },
-            "required": ["currency_code", "value"],
+            "required": [
+              "currency_code",
+              "value"
+            ],
             "additionalProperties": false,
             "description": "The amount to refund. If not specified, the full captured amount is refunded."
           },
@@ -1200,7 +1313,9 @@
             "description": "A note to the payer."
           }
         },
-        "required": ["capture_id"],
+        "required": [
+          "capture_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1238,7 +1353,10 @@
             "description": "The carrier handling the shipment."
           }
         },
-        "required": ["tracking_number", "transaction_id"],
+        "required": [
+          "tracking_number",
+          "transaction_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1265,7 +1383,9 @@
             "properties": {
               "currency_code": {
                 "type": "string",
-                "enum": ["USD"],
+                "enum": [
+                  "USD"
+                ],
                 "description": "The currency code for the shipping amount."
               },
               "value": {
@@ -1273,7 +1393,10 @@
                 "description": "The value of the shipping amount."
               }
             },
-            "required": ["currency_code", "value"],
+            "required": [
+              "currency_code",
+              "value"
+            ],
             "additionalProperties": false,
             "description": "The shipping amount for the subscription."
           },
@@ -1331,7 +1454,9 @@
                       },
                       "country_code": {
                         "type": "string",
-                        "enum": ["US"],
+                        "enum": [
+                          "US"
+                        ],
                         "description": "The country code."
                       }
                     },
@@ -1366,12 +1491,18 @@
               },
               "shipping_preference": {
                 "type": "string",
-                "enum": ["SET_PROVIDED_ADDRESS", "GET_FROM_FILE"],
+                "enum": [
+                  "SET_PROVIDED_ADDRESS",
+                  "GET_FROM_FILE"
+                ],
                 "description": "The shipping preference."
               },
               "user_action": {
                 "type": "string",
-                "enum": ["SUBSCRIBE_NOW", "CONTINUE"],
+                "enum": [
+                  "SUBSCRIBE_NOW",
+                  "CONTINUE"
+                ],
                 "description": "The user action."
               },
               "return_url": {
@@ -1387,26 +1518,40 @@
                 "properties": {
                   "payer_selected": {
                     "type": "string",
-                    "enum": ["PAYPAL", "CREDIT_CARD"],
+                    "enum": [
+                      "PAYPAL",
+                      "CREDIT_CARD"
+                    ],
                     "description": "The payment method selected by the payer."
                   },
                   "payee_preferred": {
                     "type": "string",
-                    "enum": ["IMMEDIATE_PAYMENT_REQUIRED", "INSTANT_FUNDING_SOURCE"],
+                    "enum": [
+                      "IMMEDIATE_PAYMENT_REQUIRED",
+                      "INSTANT_FUNDING_SOURCE"
+                    ],
                     "description": "The preferred payment method for the payee."
                   }
                 },
-                "required": ["payer_selected"],
+                "required": [
+                  "payer_selected"
+                ],
                 "additionalProperties": false,
                 "description": "The payment method details."
               }
             },
-            "required": ["brand_name", "return_url", "cancel_url"],
+            "required": [
+              "brand_name",
+              "return_url",
+              "cancel_url"
+            ],
             "additionalProperties": false,
             "description": "The application context for the subscription."
           }
         },
-        "required": ["plan_id"],
+        "required": [
+          "plan_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1442,7 +1587,12 @@
                   "properties": {
                     "interval_unit": {
                       "type": "string",
-                      "enum": ["DAY", "WEEK", "MONTH", "YEAR"],
+                      "enum": [
+                        "DAY",
+                        "WEEK",
+                        "MONTH",
+                        "YEAR"
+                      ],
                       "description": "The unit of time for the billing cycle."
                     },
                     "interval_count": {
@@ -1450,13 +1600,19 @@
                       "description": "The number of units for the billing cycle."
                     }
                   },
-                  "required": ["interval_unit", "interval_count"],
+                  "required": [
+                    "interval_unit",
+                    "interval_count"
+                  ],
                   "additionalProperties": true,
                   "description": "The frequency of the billing cycle."
                 },
                 "tenure_type": {
                   "type": "string",
-                  "enum": ["REGULAR", "TRIAL"],
+                  "enum": [
+                    "REGULAR",
+                    "TRIAL"
+                  ],
                   "description": "The type of billing cycle tenure."
                 },
                 "sequence": {
@@ -1475,7 +1631,9 @@
                       "properties": {
                         "currency_code": {
                           "type": "string",
-                          "enum": ["USD"],
+                          "enum": [
+                            "USD"
+                          ],
                           "description": "The currency code for the fixed price."
                         },
                         "value": {
@@ -1483,7 +1641,10 @@
                           "description": "The value of the fixed price."
                         }
                       },
-                      "required": ["currency_code", "value"],
+                      "required": [
+                        "currency_code",
+                        "value"
+                      ],
                       "additionalProperties": true,
                       "description": "The fixed price for the subscription plan."
                     },
@@ -1496,7 +1657,12 @@
                   "description": "The pricing scheme for the billing cycle."
                 }
               },
-              "required": ["frequency", "tenure_type", "sequence", "pricing_scheme"],
+              "required": [
+                "frequency",
+                "tenure_type",
+                "sequence",
+                "pricing_scheme"
+              ],
               "additionalProperties": true
             },
             "description": "The billing cycles of the plan."
@@ -1513,7 +1679,9 @@
                 "properties": {
                   "currency_code": {
                     "type": "string",
-                    "enum": ["USD"],
+                    "enum": [
+                      "USD"
+                    ],
                     "description": "The currency code for the setup fee."
                   },
                   "value": {
@@ -1526,7 +1694,10 @@
               },
               "setup_fee_failure_action": {
                 "type": "string",
-                "enum": ["CONTINUE", "CANCEL"],
+                "enum": [
+                  "CONTINUE",
+                  "CANCEL"
+                ],
                 "description": "The action to take if the setup fee payment fails."
               },
               "payment_failure_threshold": {
@@ -1553,7 +1724,11 @@
             "description": "The tax details."
           }
         },
-        "required": ["product_id", "name", "billing_cycles"],
+        "required": [
+          "product_id",
+          "name",
+          "billing_cycles"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1573,7 +1748,9 @@
             "description": "The ID of the draft or scheduled invoice to delete."
           }
         },
-        "required": ["invoice_id"],
+        "required": [
+          "invoice_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1593,7 +1770,9 @@
             "description": "The ID of the recurring invoice series to delete. Only series in DRAFT status can be deleted; use cancel_recurring_series for an activated series."
           }
         },
-        "required": ["recurring_series_id"],
+        "required": [
+          "recurring_series_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1635,7 +1814,9 @@
             "description": "The QR code height"
           }
         },
-        "required": ["invoice_id"],
+        "required": [
+          "invoice_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1655,7 +1836,9 @@
             "description": "The order id generated during create call"
           }
         },
-        "required": ["dispute_id"],
+        "required": [
+          "dispute_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1675,7 +1858,9 @@
             "description": "The ID of the invoice to retrieve."
           }
         },
-        "required": ["invoice_id"],
+        "required": [
+          "invoice_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1706,7 +1891,12 @@
             "description": "The time periods used for segmenting metrics data. It can be \"DAILY\", \"WEEKLY\", \"MONTHLY\", \"QUARTERLY\", or \"YEARLY\""
           }
         },
-        "required": ["start_date", "end_date", "insight_type", "time_interval"],
+        "required": [
+          "start_date",
+          "end_date",
+          "insight_type",
+          "time_interval"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1726,7 +1916,9 @@
             "description": "The order id generated during create call"
           }
         },
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1746,7 +1938,9 @@
             "description": "The ID of the recurring invoice series to retrieve."
           }
         },
-        "required": ["recurring_series_id"],
+        "required": [
+          "recurring_series_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1766,7 +1960,9 @@
             "description": "The ID of the refund to get details for."
           }
         },
-        "required": ["refund_id"],
+        "required": [
+          "refund_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -1973,18 +2169,23 @@
           },
           "transaction_status": {
             "type": "string",
-            "enum": ["D", "P", "S", "V"],
+            "enum": [
+              "D",
+              "P",
+              "S",
+              "V"
+            ],
             "default": "S"
           },
           "start_date": {
             "type": "string",
             "description": "Filters the transactions in the response by a start date and time, in ISO8601 date and time format. Seconds are required. Fractional seconds are optional.",
-            "default": "2026-10-01T07:52:52.780Z"
+            "default": "2026-10-01T07:55:02.813Z"
           },
           "end_date": {
             "type": "string",
             "description": "Filters the transactions in the response by an end date and time, in ISO8601 date and time format. Seconds are required. Fractional seconds are optional. The maximum supported range is 31 days.",
-            "default": "2026-11-01T07:52:52.780Z"
+            "default": "2026-11-01T07:55:02.813Z"
           },
           "search_months": {
             "type": "number",
@@ -2023,7 +2224,9 @@
             "description": "The order id generated during create call"
           }
         },
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2090,7 +2293,10 @@
                 "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
               }
             },
-            "required": ["currency_code", "value"],
+            "required": [
+              "currency_code",
+              "value"
+            ],
             "additionalProperties": false,
             "description": "The currency and amount for a financial transaction."
           },
@@ -2153,7 +2359,10 @@
             "description": "The shipping information associated with this payment."
           }
         },
-        "required": ["invoice_id", "method"],
+        "required": [
+          "invoice_id",
+          "method"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2190,7 +2399,10 @@
                 "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
               }
             },
-            "required": ["currency_code", "value"],
+            "required": [
+              "currency_code",
+              "value"
+            ],
             "additionalProperties": false,
             "description": "The currency and amount for a financial transaction."
           },
@@ -2209,7 +2421,10 @@
             "description": "The payment mode or method through which the invoicer can accept the payments."
           }
         },
-        "required": ["invoice_id", "method"],
+        "required": [
+          "invoice_id",
+          "method"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2225,7 +2440,10 @@
         "properties": {
           "resource_type": {
             "type": "string",
-            "enum": ["invoice", "recurring_series"],
+            "enum": [
+              "invoice",
+              "recurring_series"
+            ],
             "description": "Which resource type to search. 'invoice' searches individual invoices using invoice_filters; 'recurring_series' searches recurring invoice series using recurring_series_filters."
           },
           "page": {
@@ -2326,7 +2544,10 @@
                         "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                       }
                     },
-                    "required": ["currency_code", "value"],
+                    "required": [
+                      "currency_code",
+                      "value"
+                    ],
                     "additionalProperties": false,
                     "description": "The lower bound of the amount range."
                   },
@@ -2343,12 +2564,18 @@
                         "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                       }
                     },
-                    "required": ["currency_code", "value"],
+                    "required": [
+                      "currency_code",
+                      "value"
+                    ],
                     "additionalProperties": false,
                     "description": "The upper bound of the amount range."
                   }
                 },
-                "required": ["lower_amount", "upper_amount"],
+                "required": [
+                  "lower_amount",
+                  "upper_amount"
+                ],
                 "additionalProperties": false,
                 "description": "Filters invoices whose total amount falls within this range."
               },
@@ -2366,7 +2593,10 @@
                     "description": "The end date, in yyyy-MM-DD format."
                   }
                 },
-                "required": ["start", "end"],
+                "required": [
+                  "start",
+                  "end"
+                ],
                 "additionalProperties": false,
                 "description": "Filters invoices by the invoice's own date (the date shown on the invoice itself, also called the billing date). Use this for most 'invoices dated/created/issued between X and Y' requests -- creation_date_range is for PayPal's internal record-creation timestamp, not the invoice's date."
               },
@@ -2384,7 +2614,10 @@
                     "description": "The end date, in yyyy-MM-DD format."
                   }
                 },
-                "required": ["start", "end"],
+                "required": [
+                  "start",
+                  "end"
+                ],
                 "additionalProperties": false,
                 "description": "Filters invoices whose due date falls within this range."
               },
@@ -2406,7 +2639,10 @@
                     "description": "The end date and time, in ISO8601 format (for example, 2018-06-21T23:59:59Z). Seconds are required; fractional seconds are optional. A plain date (yyyy-MM-DD) is also accepted and is expanded to the end of that day (23:59:59Z)."
                   }
                 },
-                "required": ["start", "end"],
+                "required": [
+                  "start",
+                  "end"
+                ],
                 "additionalProperties": false,
                 "description": "Filters invoices by the date and time PayPal recorded the invoice as paid (a system timestamp)."
               },
@@ -2428,7 +2664,10 @@
                     "description": "The end date and time, in ISO8601 format (for example, 2018-06-21T23:59:59Z). Seconds are required; fractional seconds are optional. A plain date (yyyy-MM-DD) is also accepted and is expanded to the end of that day (23:59:59Z)."
                   }
                 },
-                "required": ["start", "end"],
+                "required": [
+                  "start",
+                  "end"
+                ],
                 "additionalProperties": false,
                 "description": "Filters invoices by the date and time PayPal's system recorded the invoice record as created (an internal system timestamp, NOT the invoice's own date). For 'invoices dated/created between X and Y' requests, prefer invoice_date_range unless the user specifically means when the record was created in PayPal."
               }
@@ -2480,7 +2719,12 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "enum": ["DRAFT", "ACTIVE", "CANCELLED", "EXPIRED"]
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "CANCELLED",
+                        "EXPIRED"
+                      ]
                     },
                     "minItems": 1,
                     "maxItems": 5,
@@ -2504,7 +2748,10 @@
                         "description": "The end date and time, in ISO8601 format (for example, 2018-06-21T23:59:59Z). Seconds are required; fractional seconds are optional. A plain date (yyyy-MM-DD) is also accepted and is expanded to the end of that day (23:59:59Z)."
                       }
                     },
-                    "required": ["start", "end"],
+                    "required": [
+                      "start",
+                      "end"
+                    ],
                     "additionalProperties": false,
                     "description": "Filters recurring series by the date and time PayPal recorded the series as created (a system timestamp). This endpoint has no separate 'series date' field -- for 'series created/started between X and Y' requests, this is the field to use. Mutually exclusive with next_occurrence_date_range -- PayPal supports only one range criterion per search."
                   },
@@ -2522,7 +2769,10 @@
                         "description": "The end date, in yyyy-MM-DD format."
                       }
                     },
-                    "required": ["start", "end"],
+                    "required": [
+                      "start",
+                      "end"
+                    ],
                     "additionalProperties": false,
                     "description": "Filters recurring series whose next occurrence date falls within this range. Mutually exclusive with creation_date_range -- PayPal supports only one range criterion per search."
                   },
@@ -2542,7 +2792,10 @@
                             "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                           }
                         },
-                        "required": ["currency_code", "value"],
+                        "required": [
+                          "currency_code",
+                          "value"
+                        ],
                         "additionalProperties": false,
                         "description": "The lower bound of the amount range."
                       },
@@ -2559,12 +2812,18 @@
                             "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                           }
                         },
-                        "required": ["currency_code", "value"],
+                        "required": [
+                          "currency_code",
+                          "value"
+                        ],
                         "additionalProperties": false,
                         "description": "The upper bound of the amount range."
                       }
                     },
-                    "required": ["lower_amount", "upper_amount"],
+                    "required": [
+                      "lower_amount",
+                      "upper_amount"
+                    ],
                     "additionalProperties": false,
                     "description": "Filters recurring series whose total amount falls within this range."
                   }
@@ -2577,7 +2836,9 @@
             "description": "Filters to apply when resource_type is 'recurring_series'. Must not be set when resource_type is 'invoice'."
           }
         },
-        "required": ["resource_type"],
+        "required": [
+          "resource_type"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2612,7 +2873,9 @@
             "description": "Additional email addresses to which to send the invoice."
           }
         },
-        "required": ["invoice_id"],
+        "required": [
+          "invoice_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2647,7 +2910,9 @@
             "description": "Additional email addresses to which to send the reminder."
           }
         },
-        "required": ["invoice_id"],
+        "required": [
+          "invoice_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2668,7 +2933,10 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["BEFORE_DUE", "AFTER_DUE"],
+                  "enum": [
+                    "BEFORE_DUE",
+                    "AFTER_DUE"
+                  ],
                   "description": "The type of reminder. BEFORE_DUE sends a reminder before the invoice due date; AFTER_DUE sends a reminder after the invoice due date."
                 },
                 "interval": {
@@ -2685,7 +2953,9 @@
                       "description": "The number of interval units before/after the due date at which to send the reminder."
                     }
                   },
-                  "required": ["value"],
+                  "required": [
+                    "value"
+                  ],
                   "additionalProperties": false,
                   "description": "The interval at which to send the reminder."
                 },
@@ -2705,7 +2975,11 @@
                   "description": "Notification settings for the reminder."
                 }
               },
-              "required": ["type", "interval", "repetition"],
+              "required": [
+                "type",
+                "interval",
+                "repetition"
+              ],
               "additionalProperties": false,
               "description": "An invoice auto reminder configuration."
             },
@@ -2731,7 +3005,9 @@
             "description": "The ID of the product to update."
           }
         },
-        "required": ["product_id"],
+        "required": [
+          "product_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2755,7 +3031,9 @@
             "description": "Get all detailed information for the subscription."
           }
         },
-        "required": ["subscription_id"],
+        "required": [
+          "subscription_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2775,7 +3053,9 @@
             "description": "The ID of the subscription plan to show."
           }
         },
-        "required": ["plan_id"],
+        "required": [
+          "plan_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2795,11 +3075,18 @@
           },
           "type": {
             "type": "string",
-            "enum": ["BEFORE_DUE", "AFTER_DUE"]
+            "enum": [
+              "BEFORE_DUE",
+              "AFTER_DUE"
+            ]
           },
           "status": {
             "type": "string",
-            "enum": ["NONE", "ACTIVE", "INACTIVE"],
+            "enum": [
+              "NONE",
+              "ACTIVE",
+              "INACTIVE"
+            ],
             "description": "Select an option."
           },
           "interval": {
@@ -2810,7 +3097,9 @@
                 "description": "The number of interval units before/after the due date at which to send the reminder."
               }
             },
-            "required": ["value"],
+            "required": [
+              "value"
+            ],
             "additionalProperties": false,
             "description": "The interval at which to send the reminder. The interval unit is always DAY."
           },
@@ -2830,7 +3119,12 @@
             "description": "Notification settings for the reminder."
           }
         },
-        "required": ["reminder_configuration_id", "type", "interval", "repetition"],
+        "required": [
+          "reminder_configuration_id",
+          "type",
+          "interval",
+          "repetition"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -2846,7 +3140,10 @@
         "properties": {
           "resource_type": {
             "type": "string",
-            "enum": ["invoice", "recurring_series"],
+            "enum": [
+              "invoice",
+              "recurring_series"
+            ],
             "description": "Which kind of resource to update. 'invoice' updates an individual invoice; 'recurring_series' updates a recurring invoice series."
           },
           "invoice_update": {
@@ -2997,11 +3294,21 @@
                               },
                               "phone_type": {
                                 "type": "string",
-                                "enum": ["FAX", "HOME", "MOBILE", "OTHER", "PAGER"],
+                                "enum": [
+                                  "FAX",
+                                  "HOME",
+                                  "MOBILE",
+                                  "OTHER",
+                                  "PAGER"
+                                ],
                                 "description": "The type of phone number."
                               }
                             },
-                            "required": ["country_code", "national_number", "phone_type"],
+                            "required": [
+                              "country_code",
+                              "national_number",
+                              "phone_type"
+                            ],
                             "additionalProperties": false,
                             "description": "phone object"
                           },
@@ -3114,7 +3421,10 @@
                           "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                         }
                       },
-                      "required": ["currency_code", "value"],
+                      "required": [
+                        "currency_code",
+                        "value"
+                      ],
                       "additionalProperties": false,
                       "description": "The unit price of the item. Does not include tax or discount."
                     },
@@ -3135,7 +3445,10 @@
                           "description": "A note about the tax, used to track tax-related data."
                         }
                       },
-                      "required": ["name", "percent"],
+                      "required": [
+                        "name",
+                        "percent"
+                      ],
                       "additionalProperties": false,
                       "description": "tax object"
                     },
@@ -3160,7 +3473,10 @@
                               "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                             }
                           },
-                          "required": ["currency_code", "value"],
+                          "required": [
+                            "currency_code",
+                            "value"
+                          ],
                           "additionalProperties": false,
                           "description": "The discount as a fixed amount. Mutually exclusive with percent -- set only one."
                         }
@@ -3175,11 +3491,19 @@
                     },
                     "unit_of_measure": {
                       "type": "string",
-                      "enum": ["QUANTITY", "HOURS", "AMOUNT"],
+                      "enum": [
+                        "QUANTITY",
+                        "HOURS",
+                        "AMOUNT"
+                      ],
                       "description": "The unit of measure for the invoiced item"
                     }
                   },
-                  "required": ["name", "quantity", "unit_amount"],
+                  "required": [
+                    "name",
+                    "quantity",
+                    "unit_amount"
+                  ],
                   "additionalProperties": false,
                   "description": "invoice line item object"
                 },
@@ -3230,7 +3554,11 @@
                 "description": "Whether to send the invoice update notification to the merchant (invoicer). PayPal defaults to true if omitted."
               }
             },
-            "required": ["currency_code", "primary_recipients", "items"],
+            "required": [
+              "currency_code",
+              "primary_recipients",
+              "items"
+            ],
             "additionalProperties": false,
             "description": "Full replacement content for the invoice. Set only when resource_type is 'invoice'."
           },
@@ -3239,7 +3567,12 @@
             "properties": {
               "interval_unit": {
                 "type": "string",
-                "enum": ["DAY", "WEEK", "MONTH", "YEAR"],
+                "enum": [
+                  "DAY",
+                  "WEEK",
+                  "MONTH",
+                  "YEAR"
+                ],
                 "description": "The time unit for the recurring invoice cycle interval"
               },
               "interval_count": {
@@ -3395,11 +3728,21 @@
                               },
                               "phone_type": {
                                 "type": "string",
-                                "enum": ["FAX", "HOME", "MOBILE", "OTHER", "PAGER"],
+                                "enum": [
+                                  "FAX",
+                                  "HOME",
+                                  "MOBILE",
+                                  "OTHER",
+                                  "PAGER"
+                                ],
                                 "description": "The type of phone number."
                               }
                             },
-                            "required": ["country_code", "national_number", "phone_type"],
+                            "required": [
+                              "country_code",
+                              "national_number",
+                              "phone_type"
+                            ],
                             "additionalProperties": false,
                             "description": "phone object"
                           },
@@ -3514,7 +3857,10 @@
                           "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                         }
                       },
-                      "required": ["currency_code", "value"],
+                      "required": [
+                        "currency_code",
+                        "value"
+                      ],
                       "additionalProperties": false,
                       "description": "The unit price of the item. Does not include tax or discount."
                     },
@@ -3535,7 +3881,10 @@
                           "description": "A note about the tax, used to track tax-related data."
                         }
                       },
-                      "required": ["name", "percent"],
+                      "required": [
+                        "name",
+                        "percent"
+                      ],
                       "additionalProperties": false,
                       "description": "tax object"
                     },
@@ -3560,7 +3909,10 @@
                               "description": "The amount, as a signed decimal string with up to 2 decimal places (e.g. '50.00')."
                             }
                           },
-                          "required": ["currency_code", "value"],
+                          "required": [
+                            "currency_code",
+                            "value"
+                          ],
                           "additionalProperties": false,
                           "description": "The discount as a fixed amount. Mutually exclusive with percent -- set only one."
                         }
@@ -3575,11 +3927,19 @@
                     },
                     "unit_of_measure": {
                       "type": "string",
-                      "enum": ["QUANTITY", "HOURS", "AMOUNT"],
+                      "enum": [
+                        "QUANTITY",
+                        "HOURS",
+                        "AMOUNT"
+                      ],
                       "description": "The unit of measure for the invoiced item"
                     }
                   },
-                  "required": ["name", "quantity", "unit_amount"],
+                  "required": [
+                    "name",
+                    "quantity",
+                    "unit_amount"
+                  ],
                   "additionalProperties": false,
                   "description": "invoice line item object"
                 },
@@ -3621,7 +3981,9 @@
             "description": "Full replacement content for the recurring series. Set only when resource_type is 'recurring_series'."
           }
         },
-        "required": ["resource_type"],
+        "required": [
+          "resource_type"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -3649,7 +4011,10 @@
             "description": "The PATCH operations to perform on the product."
           }
         },
-        "required": ["product_id", "operations"],
+        "required": [
+          "product_id",
+          "operations"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -3685,7 +4050,11 @@
             "description": "The carrier handling the shipment."
           }
         },
-        "required": ["transaction_id", "tracking_number", "status"],
+        "required": [
+          "transaction_id",
+          "tracking_number",
+          "status"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
@@ -3706,7 +4075,9 @@
           },
           "currency_code": {
             "type": "string",
-            "enum": ["USD"],
+            "enum": [
+              "USD"
+            ],
             "default": "USD",
             "description": "Currency code of the amount."
           },
@@ -3730,7 +4101,10 @@
                 "description": "The order sequence for the billing cycles"
               }
             },
-            "required": ["value", "sequence"],
+            "required": [
+              "value",
+              "sequence"
+            ],
             "additionalProperties": false,
             "description": "The fixed price for a billing cycle."
           },
@@ -3797,7 +4171,9 @@
                   },
                   "country_code": {
                     "type": "string",
-                    "enum": ["US"],
+                    "enum": [
+                      "US"
+                    ],
                     "description": "The country code."
                   }
                 },
@@ -3816,7 +4192,9 @@
             "description": "The shipping address."
           }
         },
-        "required": ["subscription_id"],
+        "required": [
+          "subscription_id"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
