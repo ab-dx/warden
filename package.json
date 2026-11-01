@@ -9,10 +9,12 @@
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "turbo run typecheck && tsc -p scripts",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "paypal:tools": "node --env-file=.env scripts/dump-paypal-tools.ts"
+    "paypal:tools": "node --env-file=.env scripts/dump-paypal-tools.ts",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",

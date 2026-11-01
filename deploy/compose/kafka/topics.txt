@@ -1,0 +1,7 @@
+# name partitions
+warden.calls.v1 6
+warden.decisions.v1 6
+warden.approvals.v1 3
+warden.payments.v1 6
+warden.untrusted-content.v1 3
+warden.dlq.v1 1
