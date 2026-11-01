@@ -2,17 +2,26 @@
 // real schemas rather than from docs
 import { writeFile } from 'node:fs/promises';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { mintToken } from './paypal-token.ts';
 
-const url = process.env.PAYPAL_MCP_URL ?? 'https://mcp.sandbox.paypal.com/http';
+// the documented streamable http endpoint (/http) returns 404, only sse is live
+const url = process.env.PAYPAL_MCP_URL ?? 'https://mcp.sandbox.paypal.com/sse';
 if (!url.includes('sandbox')) throw new Error(`refusing non-sandbox mcp url: ${url}`);
 
 const { token } = await mintToken();
 const client = new Client({ name: 'warden-tools-dump', version: '0.0.0' });
+const authorization = `Bearer ${token}`;
 await client.connect(
-  new StreamableHTTPClientTransport(new URL(url), {
-    requestInit: { headers: { authorization: `Bearer ${token}` } },
+  new SSEClientTransport(new URL(url), {
+    requestInit: { headers: { authorization } },
+    eventSourceInit: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          headers: { ...Object.fromEntries(new Headers(init?.headers)), authorization },
+        }),
+    },
   }),
 );
 
