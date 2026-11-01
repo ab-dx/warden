@@ -2,3 +2,11 @@ packages:
   - apps/*
   - packages/*
   - bench
+
+# native or postinstall builds we allow; everything else is blocked
+allowBuilds:
+  "@confluentinc/kafka-javascript": true
+  "@bufbuild/buf": true
+  cpu-features: true
+  protobufjs: true
+  ssh2: true
