@@ -19,6 +19,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",
     "@modelcontextprotocol/sdk": "^1.32.2",
+    "@paypal/mcp": "1.8.1",
     "@types/node": "^24.19.2",
     "turbo": "^2.11.10",
     "typescript": "^7.0.2",

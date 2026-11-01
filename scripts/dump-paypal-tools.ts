@@ -1,29 +1,12 @@
-// captures the live sandbox tool list so tiers and normalisers are built from
-// real schemas rather than from docs
+// captures the live tool list so tiers and normalisers are built from real
+// schemas rather than from docs. one file per transport, since they differ.
 import { writeFile } from 'node:fs/promises';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { connectPayPalMcp, transportFromEnv } from './paypal-mcp.ts';
 import { mintToken } from './paypal-token.ts';
 
-// the documented streamable http endpoint (/http) returns 404, only sse is live
-const url = process.env.PAYPAL_MCP_URL ?? 'https://mcp.sandbox.paypal.com/sse';
-if (!url.includes('sandbox')) throw new Error(`refusing non-sandbox mcp url: ${url}`);
-
+const transport = transportFromEnv();
 const { token } = await mintToken();
-const client = new Client({ name: 'warden-tools-dump', version: '0.0.0' });
-const authorization = `Bearer ${token}`;
-await client.connect(
-  new SSEClientTransport(new URL(url), {
-    requestInit: { headers: { authorization } },
-    eventSourceInit: {
-      fetch: (input, init) =>
-        fetch(input, {
-          ...init,
-          headers: { ...Object.fromEntries(new Headers(init?.headers)), authorization },
-        }),
-    },
-  }),
-);
+const { client, source } = await connectPayPalMcp(token, transport);
 
 const tools = [];
 let cursor: string | undefined;
@@ -35,6 +18,7 @@ do {
 await client.close();
 
 tools.sort((a, b) => a.name.localeCompare(b.name));
-const out = { capturedAt: new Date().toISOString(), source: url, count: tools.length, tools };
-await writeFile('docs/paypal-tools.json', `${JSON.stringify(out, null, 2)}\n`);
-console.log(`wrote ${tools.length} tools to docs/paypal-tools.json`);
+const file = transport === 'sse' ? 'docs/paypal-tools.json' : 'docs/paypal-tools.stdio.json';
+const out = { capturedAt: new Date().toISOString(), source, count: tools.length, tools };
+await writeFile(file, `${JSON.stringify(out, null, 2)}\n`);
+console.log(`wrote ${tools.length} tools to ${file}`);

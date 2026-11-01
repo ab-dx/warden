@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-11-01T07:55:03.552Z",
+  "capturedAt": "2026-11-01T08:40:52.313Z",
   "source": "https://mcp.sandbox.paypal.com/sse",
   "count": 46,
   "tools": [
@@ -2180,12 +2180,12 @@
           "start_date": {
             "type": "string",
             "description": "Filters the transactions in the response by a start date and time, in ISO8601 date and time format. Seconds are required. Fractional seconds are optional.",
-            "default": "2026-10-01T07:55:02.813Z"
+            "default": "2026-10-01T08:40:51.576Z"
           },
           "end_date": {
             "type": "string",
             "description": "Filters the transactions in the response by an end date and time, in ISO8601 date and time format. Seconds are required. Fractional seconds are optional. The maximum supported range is 31 days.",
-            "default": "2026-11-01T07:55:02.813Z"
+            "default": "2026-11-01T08:40:51.576Z"
           },
           "search_months": {
             "type": "number",
