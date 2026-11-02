@@ -235,6 +235,9 @@ importers:
       '@warden/outbox':
         specifier: workspace:*
         version: link:../../packages/outbox
+      '@warden/service-kit':
+        specifier: workspace:*
+        version: link:../../packages/service-kit
       pg:
         specifier: 8.23.1
         version: 8.23.1
@@ -290,6 +293,9 @@ importers:
       '@warden/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@warden/service-kit':
+        specifier: workspace:*
+        version: link:../../packages/service-kit
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
@@ -303,6 +309,67 @@ importers:
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
+
+  apps/policy-service:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@cedar-policy/cedar-wasm':
+        specifier: 4.14.0
+        version: 4.14.0
+      '@connectrpc/connect':
+        specifier: 2.3.0
+        version: 2.3.0(@bufbuild/protobuf@2.16.0)
+      '@connectrpc/connect-express':
+        specifier: 2.3.0
+        version: 2.3.0(@bufbuild/protobuf@2.16.0)(@connectrpc/connect-node@2.3.0(@bufbuild/protobuf@2.16.0)(@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.16.0)))(@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.16.0))(express@5.3.0(supports-color@8.1.1))
+      '@nestjs/common':
+        specifier: 12.3.2
+        version: 12.3.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      '@nestjs/core':
+        specifier: 12.3.2
+        version: 12.3.2(@nestjs/common@12.3.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@12.3.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: 12.3.2
+        version: 12.3.2(@nestjs/common@12.3.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.3.2)(supports-color@8.1.1)
+      '@warden/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@warden/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@warden/service-kit':
+        specifier: workspace:*
+        version: link:../../packages/service-kit
+      pg:
+        specifier: 8.23.1
+        version: 8.23.1
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: 7.8.2
+        version: 7.8.2
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@testcontainers/postgresql':
+        specifier: 12.2.1
+        version: 12.2.1(supports-color@8.1.1)
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
+      '@types/pg':
+        specifier: ^8.23.1
+        version: 8.23.1
+      testcontainers:
+        specifier: 12.2.1
+        version: 12.2.1(supports-color@8.1.1)
 
   packages/contracts:
     dependencies:
@@ -346,6 +413,22 @@ importers:
       testcontainers:
         specifier: 12.2.1
         version: 12.2.1(supports-color@8.1.1)
+
+  packages/service-kit:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@connectrpc/connect':
+        specifier: 2.3.0
+        version: 2.3.0(@bufbuild/protobuf@2.16.0)
+      '@connectrpc/connect-node':
+        specifier: 2.3.0
+        version: 2.3.0(@bufbuild/protobuf@2.16.0)(@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.16.0))
+    devDependencies:
+      '@types/express':
+        specifier: ^5.0.6
+        version: 5.0.6
 
 packages:
 
@@ -563,6 +646,9 @@ packages:
 
   '@bufbuild/protoplugin@2.16.0':
     resolution: {integrity: sha512-3FdYJys34VhFnBQsjiV9wurBkX/DBACQAkAk+nCKdO1p8ROVNi7gmaRAcba+4qq8hQq8rYVukuutwvGCvd4kJA==}
+
+  '@cedar-policy/cedar-wasm@4.14.0':
+    resolution: {integrity: sha512-TPyz3zMl5r7W5iSHq51IgG+NTILGoXB0VPrEcXnzCEpPUqL/7b+AtMPVVHB/UoJWuXA8YORjLuWxKHUW33ePAA==}
 
   '@confluentinc/kafka-javascript@1.11.0':
     resolution: {integrity: sha512-DKv7bvUiT60UlBEBNYq54v8kKaRlN/zMhZFTtkjm/qXDxiUSkiEP1JQRncr2I9QEa9Tq51kuDTyVnR4ZQFzmMw==}
@@ -3703,6 +3789,8 @@ snapshots:
       typescript: 5.4.5
     transitivePeerDependencies:
       - supports-color
+
+  '@cedar-policy/cedar-wasm@4.14.0': {}
 
   '@confluentinc/kafka-javascript@1.11.0(supports-color@8.1.1)':
     dependencies:

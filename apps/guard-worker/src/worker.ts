@@ -3,9 +3,9 @@ import { Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from 
 import { NativeConnection, Worker } from '@temporalio/worker';
 import { ConnectorService, PolicyService } from '@warden/contracts';
 import { KafkaPublisher, OutboxRelay, outboxSchemaSql } from '@warden/outbox';
+import { internalClient } from '@warden/service-kit';
 import pg from 'pg';
 import { createActivities } from './activities.js';
-import { internalClient } from './clients.js';
 import type { Config } from './config.js';
 
 // advisory lock id for this service's outbox relay; one leader per database

@@ -22,6 +22,7 @@
     "@paypal/mcp": "1.8.1",
     "@warden/contracts": "workspace:*",
     "@warden/core": "workspace:*",
+    "@warden/service-kit": "workspace:*",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
     "zod": "4.6.7"
