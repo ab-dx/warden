@@ -64,12 +64,13 @@ export function createActivities({ policy, connector, pool }: Deps) {
     },
 
     async forward(input: GuardInput): Promise<Forwarded> {
-      const intent = intentOf(input);
+      // keyed by call, not by fingerprint: two legitimate identical payouts must both go
+      // through, and repeats across calls are the duplicate rule's job
       const res = await connector.callTool({
         callId: input.callId,
         tool: input.tool,
         arguments: input.args as JsonObject,
-        idempotencyKey: intent.fingerprint || input.callId,
+        idempotencyKey: input.callId,
       });
       return {
         ok: res.ok,

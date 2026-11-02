@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createActivities, eventId } from './activities.js';
 
 const input = {
-  callId: 'c1',
+  callId: 'c_0f1e2d3c4b5a',
   tool: 'send_payout',
   args: { receiver_email: 'a@b.co' },
   intent: {
@@ -44,10 +44,10 @@ describe('activities', () => {
     expect(r).toMatchObject({ outcome: 'deny', reasons: [{ code: 'CHECK_FAILED' }] });
   });
 
-  it('forwards with the intent fingerprint as the idempotency key', async () => {
+  it('forwards with the call id as the idempotency key, not the fingerprint', async () => {
     const { acts, seen } = activities(Outcome.ALLOW);
     await acts.forward(input);
-    expect(seen.callTool).toMatchObject({ tool: 'send_payout', idempotencyKey: 'fp_0123456789' });
+    expect(seen.callTool).toMatchObject({ tool: 'send_payout', idempotencyKey: 'c_0f1e2d3c4b5a' });
   });
 
   it('settles with the intended amount', async () => {
