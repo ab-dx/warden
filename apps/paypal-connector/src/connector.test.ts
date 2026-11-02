@@ -20,9 +20,14 @@ const payout = async () => ({
   upstreamRef: 'B1',
   content: [{ type: 'text' as const, text: '{}' }],
 });
+const capture = async () => ({
+  ok: true,
+  upstreamRef: 'CAP1',
+  content: [{ type: 'text' as const, text: '{}' }],
+});
 
 describe('connectorService', () => {
-  const svc = connectorService(mcp as never, payout);
+  const svc = connectorService(mcp as never, payout, capture);
   const call = (tool: string) =>
     (
       svc.callTool as (
@@ -42,6 +47,7 @@ describe('connectorService', () => {
     expect(tools.map((t) => [t.name, t.upstream])).toEqual([
       ['create_refund', 'paypal-mcp'],
       ['send_payout', 'paypal-rest'],
+      ['get_capture', 'paypal-rest'],
     ]);
   });
 
@@ -54,6 +60,10 @@ describe('connectorService', () => {
 
   it('routes payouts to the rest tool', async () => {
     expect(await call('send_payout')).toMatchObject({ ok: true, upstreamRef: 'B1' });
+  });
+
+  it('routes capture lookups to the rest tool', async () => {
+    expect(await call('get_capture')).toMatchObject({ ok: true, upstreamRef: 'CAP1' });
   });
 
   it('refuses tools that neither upstream has', async () => {

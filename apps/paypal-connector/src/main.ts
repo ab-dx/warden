@@ -8,6 +8,7 @@ import { AppModule, CONFIG } from './app.module.js';
 import type { Config } from './config.js';
 import { connectorService } from './connector.js';
 import { TokenProvider } from './token.js';
+import { getCapture } from './upstream/captures.js';
 import { PayPalMcp } from './upstream/mcp.js';
 import { sendPayout } from './upstream/payouts.js';
 
@@ -16,8 +17,10 @@ app.enableShutdownHooks();
 
 const config = app.get<Config>(CONFIG);
 const tokens = app.get(TokenProvider);
-const impl = connectorService(app.get(PayPalMcp), (args, key) =>
-  sendPayout(config.PAYPAL_API_BASE, tokens, args, key),
+const impl = connectorService(
+  app.get(PayPalMcp),
+  (args, key) => sendPayout(config.PAYPAL_API_BASE, tokens, args, key),
+  (args) => getCapture(config.PAYPAL_API_BASE, tokens, args),
 );
 
 // connect handles its own body parsing, so nest's parser is off above.
