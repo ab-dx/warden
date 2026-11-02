@@ -138,6 +138,14 @@ describe('outbox', () => {
     expect(await relay.drainOnce()).toBe(0);
   });
 
+  it('ignores an event id it has already stored', async () => {
+    const e = decision('c_dupe');
+    await inTx((c) => enqueue(c, e));
+    await inTx((c) => enqueue(c, e));
+    const { rows } = await pool.query('select count(*)::int as n from outbox');
+    expect(rows[0].n).toBe(1);
+  });
+
   it('publishes committed events in order, keyed by aggregate, with headers', async () => {
     const ids = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()];
     await inTx(async (c) => {
