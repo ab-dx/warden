@@ -1,9 +1,9 @@
 import { fileURLToPath } from 'node:url';
 import { TestWorkflowEnvironment } from '@temporalio/testing';
 import { DefaultLogger, Runtime, Worker } from '@temporalio/worker';
+import type { Evaluation, Forwarded, GuardEvent, GuardInput } from '@warden/contracts';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Activities } from './activities.js';
-import type { Evaluation, Forwarded, GuardEvent, GuardInput } from './types.js';
 import { decideSignal, paymentGuard } from './workflow.js';
 
 let env: TestWorkflowEnvironment;

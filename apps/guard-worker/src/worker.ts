@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
 import { NativeConnection, Worker } from '@temporalio/worker';
 import { ConnectorService, PolicyService } from '@warden/contracts';
-import { KafkaPublisher, OutboxRelay, outboxSchemaSql } from '@warden/outbox';
+import { startOutbox } from '@warden/outbox';
 import { internalClient } from '@warden/service-kit';
 import pg from 'pg';
 import { createActivities } from './activities.js';
@@ -16,8 +16,7 @@ export class GuardRuntime implements OnApplicationBootstrap, OnApplicationShutdo
   private readonly pool: pg.Pool;
   private worker: Worker | undefined;
   private running: Promise<void> | undefined;
-  private relay: OutboxRelay | undefined;
-  private publisher: KafkaPublisher | undefined;
+  private outbox: { stop: () => Promise<void> } | undefined;
 
   constructor(private readonly config: Config) {
     this.pool = new pg.Pool({ connectionString: config.GUARD_DATABASE_URL, max: 10 });
@@ -25,16 +24,13 @@ export class GuardRuntime implements OnApplicationBootstrap, OnApplicationShutdo
 
   async onApplicationBootstrap() {
     const c = this.config;
-    await this.pool.query(outboxSchemaSql);
-
-    this.publisher = await KafkaPublisher.connect(c.KAFKA_BROKERS.split(','), 'guard-worker');
-    this.relay = new OutboxRelay({
+    this.outbox = await startOutbox({
       pool: this.pool,
-      publisher: this.publisher,
+      brokers: c.KAFKA_BROKERS.split(','),
+      clientId: 'guard-worker',
       lockKey: RELAY_LOCK,
       onError: (err) => this.log.warn(`outbox relay: ${(err as Error).message}`),
     });
-    this.relay.start();
 
     this.worker = await Worker.create({
       connection: await NativeConnection.connect({ address: c.TEMPORAL_ADDRESS }),
@@ -54,8 +50,7 @@ export class GuardRuntime implements OnApplicationBootstrap, OnApplicationShutdo
   async onApplicationShutdown() {
     this.worker?.shutdown();
     await this.running?.catch(() => {});
-    await this.relay?.stop();
-    await this.publisher?.close();
+    await this.outbox?.stop();
     await this.pool.end();
   }
 

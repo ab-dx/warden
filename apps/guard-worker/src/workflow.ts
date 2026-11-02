@@ -6,15 +6,15 @@ import {
   setHandler,
   workflowInfo,
 } from '@temporalio/workflow';
-import type { Activities } from './activities.js';
 import type {
-  DecidedBy,
   Decision,
   Evaluation,
   Forwarded,
+  GuardDecidedBy,
   GuardInput,
   GuardResult,
-} from './types.js';
+} from '@warden/contracts';
+import type { Activities } from './activities.js';
 
 const policy = proxyActivities<Activities>({
   startToCloseTimeout: '10s',
@@ -60,7 +60,7 @@ export async function paymentGuard(input: GuardInput): Promise<GuardResult> {
 
   let outcome: 'allow' | 'deny' = ev.outcome === 'allow' ? 'allow' : 'deny';
   let reasons = ev.reasons;
-  let decidedBy: DecidedBy = 'policy';
+  let decidedBy: GuardDecidedBy = 'policy';
 
   if (ev.outcome === 'escalate') {
     const timeoutMs = input.approvalTimeoutMs ?? DEFAULT_APPROVAL_TIMEOUT_MS;

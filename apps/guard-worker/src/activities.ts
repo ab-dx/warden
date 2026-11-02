@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { create, fromJson, type JsonObject } from '@bufbuild/protobuf';
 import { timestampFromDate, timestampNow } from '@bufbuild/protobuf/wkt';
 import type { Client } from '@connectrpc/connect';
+import type { Evaluation, Forwarded, GuardEvent, GuardInput, Json } from '@warden/contracts';
 import {
   type ConnectorService,
   DecidedBy,
@@ -13,7 +14,6 @@ import {
 import type { Outcome as CoreOutcome } from '@warden/core';
 import { enqueue } from '@warden/outbox';
 import type { Pool } from 'pg';
-import type { Evaluation, Forwarded, GuardEvent, GuardInput, Json } from './types.js';
 
 export type Deps = {
   policy: Client<typeof PolicyService>;
