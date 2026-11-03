@@ -113,12 +113,11 @@ export function evaluate(policy: AgentPolicy, policies: Record<string, string>, 
   if (res.response.decision === 'allow') return { outcome: 'allow', reasons: [] };
   if (codes.length === 0) return deny('CHECK_FAILED', 'denied without a reason', 'policy');
 
-  const reasons = [...new Set(codes)].map((code) => ({
-    code,
-    message: message(code, f),
-    check: 'policy',
-  }));
-  const outcome = codes.every((c) => policy.escalate_when.includes(c)) ? 'escalate' : 'deny';
+  // the reasons that deny outright come first, since they are what the agent must act on
+  const escalates = (c: string) => policy.escalate_when.includes(c);
+  const unique = [...new Set(codes)].sort((a, b) => Number(escalates(a)) - Number(escalates(b)));
+  const reasons = unique.map((code) => ({ code, message: message(code, f), check: 'policy' }));
+  const outcome = unique.every(escalates) ? 'escalate' : 'deny';
   return { outcome, reasons };
 }
 

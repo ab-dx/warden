@@ -97,7 +97,8 @@ describe('policy engine', () => {
   it('denies outright when any reason is not in escalate_when', () => {
     const r = run({ counterparty: 'evil@temp-mail.org' });
     expect(r.outcome).toBe('deny');
-    expect(r.reasons.map((x) => x.code).sort()).toEqual([
+    // the deny reason leads, since that's what the agent has to act on
+    expect(r.reasons.map((x) => x.code)).toEqual([
       'COUNTERPARTY_DENYLISTED',
       'COUNTERPARTY_NOT_IN_MANDATE',
     ]);

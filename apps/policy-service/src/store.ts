@@ -188,7 +188,9 @@ export class PolicyStore {
       };
       const verdict = evaluate(policy, policies, facts);
 
-      // hold the amount while a human decides too, so parallel calls can't spend it meanwhile
+      // hold the amount while a human decides too, so parallel calls can't spend it meanwhile.
+      // only a call the mandate allowed by itself draws on the mandate; anything escalated is
+      // outside it, so a held attacker payout can't eat the budget the user gave for real work.
       let reservationId: string | undefined;
       if (verdict.outcome !== 'deny' && intent.amountMinor !== undefined && intent.currency) {
         reservationId = `res_${randomUUID()}`;
@@ -199,7 +201,7 @@ export class PolicyStore {
             reservationId,
             intent.callId,
             intent.agentId,
-            mandate?.id ?? null,
+            verdict.outcome === 'allow' ? (mandate?.id ?? null) : null,
             intent.currency,
             intent.amountMinor.toString(),
           ],

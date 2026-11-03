@@ -41,7 +41,12 @@ agents:
 `);
   const created: unknown[] = [];
   const svc = policyService(
-    { createMandate: async (m: unknown) => (created.push(m), {}) } as never,
+    {
+      createMandate: async (m: unknown) => {
+        created.push(m);
+        return {};
+      },
+    } as never,
     file,
   );
   const good = {

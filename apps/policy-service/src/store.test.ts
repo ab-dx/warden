@@ -141,6 +141,22 @@ describe('PolicyStore', () => {
     expect(r).toMatchObject({ outcome: 'deny', reasons: [{ code: 'UNKNOWN_AGENT' }] });
   });
 
+  it("keeps an escalated payment off the mandate's budget but on the daily one", async () => {
+    const m = await mandate({ maxPerCallMinor: 10000n, maxTotalMinor: 10000n });
+    const held = await store.evaluateAndReserve(
+      payout({ counterparty: 'new-bank@attacker.example', amountMinor: 9600n }),
+    );
+    expect(held.outcome).toBe('escalate');
+    // the contractor can still be paid the full mandate while the attacker's payout waits
+    expect((await store.evaluateAndReserve(payout({ amountMinor: 10000n }))).outcome).toBe('allow');
+    const [row] = await store.mandates({ id: m.id });
+    expect(row?.reserved_minor).toBe('10000');
+    const daily = await store.evaluateAndReserve(
+      payout({ counterparty: 'other@x.com', amountMinor: 15000n }),
+    );
+    expect(daily.reasons.map((r) => r.code)).toContain('OVER_DAILY_BUDGET');
+  });
+
   it('holds the amount while a human decides', async () => {
     await mandate();
     const r = await store.evaluateAndReserve(payout({ counterparty: 'new-contractor@x.com' }));
