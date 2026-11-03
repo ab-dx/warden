@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-paper: #edf1ee;
+  --color-sheet: #f8faf8;
+  --color-ink: #1d2a3a;
+  --color-ink-soft: #5a6977;
+  --color-rule: #c7d1cc;
+  --color-blue: #2445a0;
+  --color-held: #a8620c;
+  --color-paid: #1e6e47;
+  --color-refused: #a3261d;
+}
+
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+/* the fine wave lines of cheque security paper, only on a held payment */
+.security-paper {
+  background-color: var(--color-sheet);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12'%3E%3Cpath d='M0 6 Q15 0 30 6 T60 6 T90 6 T120 6' fill='none' stroke='%232445a0' stroke-opacity='0.07'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .countdown {
+    transition: width 1s linear;
+  }
+}
