@@ -15,7 +15,9 @@
     "paypal:tools": "node --env-file=.env scripts/dump-paypal-tools.ts",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
-    "paypal:seed": "node --env-file=.env scripts/seed-sandbox.ts"
+    "paypal:seed": "node --env-file=.env scripts/seed-sandbox.ts",
+    "setup:env": "node scripts/setup-env.ts",
+    "app:up": "docker compose --profile app up -d --build --wait"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",

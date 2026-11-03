@@ -1,0 +1,44 @@
+// fills in the secrets the services share with each other, without touching any value
+// already in .env. paypal credentials still come from you.
+import { randomBytes } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+
+const file = '.env';
+if (!existsSync(file))
+  throw new Error('copy .env.example to .env and add your paypal sandbox credentials first');
+const current = readFileSync(file, 'utf8');
+const has = (k: string) => new RegExp(`^${k}=.+`, 'm').test(current);
+const hex = (n: number) => randomBytes(n).toString('hex');
+
+const agentKey = /^WARDEN_AGENT_KEY=(.+)$/m.exec(current)?.[1] ?? hex(24);
+const wanted: Record<string, string> = {
+  POLICY_TOKEN: hex(32),
+  CONNECTOR_TOKEN: hex(32),
+  LEDGER_TOKEN: hex(32),
+  SESSION_SECRET: hex(32),
+  DASHBOARD_PASSWORD: hex(9),
+  WARDEN_AGENT_KEY: agentKey,
+  WARDEN_AGENT_KEYS: `ops-agent:${agentKey}`,
+};
+
+// fill empty KEY= lines (as copied from .env.example) in place, append missing keys,
+// and never change a value that is already set
+let next = current;
+const filled: string[] = [];
+const appended: string[] = [];
+for (const [k, v] of Object.entries(wanted)) {
+  if (has(k)) continue;
+  const empty = new RegExp(`^${k}=$`, 'm');
+  if (empty.test(next)) {
+    next = next.replace(empty, `${k}=${v}`);
+    filled.push(k);
+  } else {
+    next += `${next.endsWith('\n') ? '' : '\n'}${k}=${v}\n`;
+    appended.push(k);
+  }
+}
+const done = [...filled, ...appended];
+if (done.length) writeFileSync(file, next);
+console.log(done.length ? `set ${done.join(', ')}` : 'nothing to set');
+if (done.includes('DASHBOARD_PASSWORD'))
+  console.log('the dashboard password is DASHBOARD_PASSWORD in .env');

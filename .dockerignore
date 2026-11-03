@@ -1,0 +1,20 @@
+# send only what the build needs
+*
+!apps
+!packages
+!proto
+!demo
+!docs
+!scripts
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!turbo.json
+!tsconfig.base.json
+!biome.json
+
+# never local state, build output or hidden files
+**/node_modules
+**/dist
+**/.*
+packages/contracts/src/gen

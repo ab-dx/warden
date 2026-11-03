@@ -5,6 +5,26 @@ x-healthcheck: &healthcheck
   timeout: 5s
   retries: 30
 
+# shared by every warden service. secrets come from .env (pnpm setup:env fills them)
+x-infra: &infra
+  postgres: { condition: service_healthy }
+  kafka-init: { condition: service_completed_successfully }
+  temporal: { condition: service_healthy }
+
+x-app: &app
+  profiles: [app]
+  env_file: [.env]
+  restart: unless-stopped
+  depends_on: *infra
+
+# service addresses inside the compose network, overriding the localhost defaults
+x-internal: &internal
+  KAFKA_BROKERS: kafka:9092
+  TEMPORAL_ADDRESS: temporal:7233
+  POLICY_URL: http://policy-service:7003
+  CONNECTOR_URL: http://paypal-connector:7001
+  LEDGER_URL: http://ledger-service:7004
+
 services:
   postgres:
     image: postgres:17.11
@@ -82,6 +102,129 @@ services:
     ports: ["11434:11434"]
     volumes:
       - ollama:/root/.ollama
+
+  # the warden services: docker compose --profile app up -d --build
+  policy-service:
+    <<: *app
+    build: { context: ., args: { APP: policy-service } }
+    environment:
+      <<: *internal
+      POLICY_DATABASE_URL: postgres://policy:${SERVICE_DB_PASSWORD:-warden}@postgres:5432/policy
+      POLICY_FILE: /app/policy.yaml
+    healthcheck:
+      {
+        <<: *healthcheck,
+        test:
+          [
+            "CMD",
+            "/nodejs/bin/node",
+            "-e",
+            "fetch('http://localhost:7003/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+          ],
+      }
+
+  paypal-connector:
+    <<: *app
+    build: { context: ., args: { APP: paypal-connector } }
+    environment:
+      <<: *internal
+    healthcheck:
+      {
+        <<: *healthcheck,
+        test:
+          [
+            "CMD",
+            "/nodejs/bin/node",
+            "-e",
+            "fetch('http://localhost:7001/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+          ],
+      }
+
+  guard-worker:
+    <<: *app
+    build: { context: ., args: { APP: guard-worker } }
+    environment:
+      <<: *internal
+      GUARD_DATABASE_URL: postgres://guard:${SERVICE_DB_PASSWORD:-warden}@postgres:5432/guard
+    depends_on:
+      <<: *infra
+      policy-service: { condition: service_healthy }
+      paypal-connector: { condition: service_healthy }
+    healthcheck:
+      {
+        <<: *healthcheck,
+        test:
+          [
+            "CMD",
+            "/nodejs/bin/node",
+            "-e",
+            "fetch('http://localhost:7002/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+          ],
+      }
+
+  edge-gateway:
+    <<: *app
+    build: { context: ., args: { APP: edge-gateway } }
+    ports: ["7000:7000"]
+    environment:
+      <<: *internal
+      GATEWAY_DATABASE_URL: postgres://gateway:${SERVICE_DB_PASSWORD:-warden}@postgres:5432/gateway
+      DASHBOARD_URL: http://localhost:7005
+    depends_on:
+      <<: *infra
+      guard-worker: { condition: service_healthy }
+    healthcheck:
+      {
+        <<: *healthcheck,
+        test:
+          [
+            "CMD",
+            "/nodejs/bin/node",
+            "-e",
+            "fetch('http://localhost:7000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+          ],
+      }
+
+  ledger-service:
+    <<: *app
+    build: { context: ., args: { APP: ledger-service } }
+    environment:
+      <<: *internal
+      LEDGER_DATABASE_URL: postgres://ledger:${SERVICE_DB_PASSWORD:-warden}@postgres:5432/ledger
+    healthcheck:
+      {
+        <<: *healthcheck,
+        test:
+          [
+            "CMD",
+            "/nodejs/bin/node",
+            "-e",
+            "fetch('http://localhost:7004/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+          ],
+      }
+
+  api:
+    <<: *app
+    build: { context: ., args: { APP: api } }
+    ports: ["7005:7005"]
+    environment:
+      <<: *internal
+      DASHBOARD_DIR: /app/dashboard
+    depends_on:
+      <<: *infra
+      policy-service: { condition: service_healthy }
+      ledger-service: { condition: service_healthy }
+    healthcheck:
+      {
+        <<: *healthcheck,
+        test:
+          [
+            "CMD",
+            "/nodejs/bin/node",
+            "-e",
+            "fetch('http://localhost:7005/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+          ],
+      }
 
 volumes:
   ollama:
