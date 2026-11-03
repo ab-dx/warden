@@ -180,7 +180,7 @@ export async function listCalls(
   const { rows } = await pool.query<CallRow>(
     `select * from calls
      where ($1::text is null or agent_id = $1) and (cardinality($2::text[]) = 0 or status = any($2))
-     order by updated_at desc limit $3`,
+     order by coalesce(received_at, updated_at) desc limit $3`,
     [q.agentId || null, q.statuses ?? [], Math.min(Math.max(q.limit, 1), 500)],
   );
   return rows;
