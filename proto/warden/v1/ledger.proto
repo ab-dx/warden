@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package warden.v1;
+
+import "google/protobuf/timestamp.proto";
+import "warden/v1/common.proto";
+
+// append-only history of every call, built from the event topics
+service LedgerService {
+  rpc ListCalls(ListCallsRequest) returns (ListCallsResponse);
+  rpc GetCall(GetCallRequest) returns (GetCallResponse);
+  rpc VerifyChain(VerifyChainRequest) returns (VerifyChainResponse);
+}
+
+message CallSummary {
+  string call_id = 1;
+  string agent_id = 2;
+  string tool = 3;
+  Tier tier = 4;
+  optional Money amount = 5;
+  optional string counterparty = 6;
+  // received, pending_approval, allowed, denied, executed, failed, unknown
+  string status = 7;
+  repeated Reason reasons = 8;
+  string decided_by = 9;
+  optional string upstream_ref = 10;
+  google.protobuf.Timestamp received_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message LedgerEntry {
+  int64 seq = 1;
+  string event_id = 2;
+  string type = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  string producer = 5;
+  // the event as protobuf json, exactly the bytes that were hashed
+  string data_json = 6;
+  string prev_hash = 7;
+  string hash = 8;
+}
+
+message ListCallsRequest {
+  // empty means every agent
+  string agent_id = 1;
+  int32 limit = 2;
+  // only calls with a status in this list; empty means all
+  repeated string statuses = 3;
+}
+
+message ListCallsResponse {
+  repeated CallSummary calls = 1;
+}
+
+message GetCallRequest {
+  string call_id = 1;
+}
+
+message GetCallResponse {
+  CallSummary call = 1;
+  repeated LedgerEntry entries = 2;
+}
+
+message VerifyChainRequest {}
+
+message VerifyChainResponse {
+  bool ok = 1;
+  int64 entries = 2;
+  optional int64 first_bad_seq = 3;
+}
