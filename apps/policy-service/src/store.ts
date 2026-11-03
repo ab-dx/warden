@@ -274,15 +274,15 @@ export class PolicyStore {
       throw new Error(`cannot settle reservation ${reservationId} in state ${now}`);
   }
 
-  // releasing a settled hold would hand back money that already left, so that is a no-op
+  // releasing a settled hold would hand back money that already left, so that is a no-op.
+  // so is releasing one that doesn't exist: there is nothing to free, and refusing would
+  // only leave the caller retrying forever.
   async release(reservationId: string, reason: string) {
     await this.pool.query(
       `update reservations set status = 'released', reason = $2, updated_at = now()
        where id = $1 and status = 'reserved'`,
       [reservationId, reason],
     );
-    if ((await this.status(reservationId)) === 'missing')
-      throw new Error(`unknown reservation ${reservationId}`);
   }
 
   private async status(id: string) {

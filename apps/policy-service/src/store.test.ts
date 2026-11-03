@@ -98,6 +98,11 @@ describe('PolicyStore', () => {
     await expect(store.settle(a.reservationId as string, 3000n, 'X')).rejects.toThrow(/released/);
   });
 
+  it('treats releasing an unknown hold as done, but refuses to settle one', async () => {
+    await expect(store.release('res_missing', 'cleanup')).resolves.toBeUndefined();
+    await expect(store.settle('res_missing', 100n, 'X')).rejects.toThrow(/missing/);
+  });
+
   it('flags a repeat of a recent payment, but not one that was denied', async () => {
     await mandate({ maxTotalMinor: 100000n, maxPerCallMinor: 20000n });
     // over the agent's 150.00 cap, so denied and holds nothing
