@@ -28,7 +28,7 @@ export type GatewayDeps = {
 
 const CHECK_TOOL: Tool = {
   name: 'warden_check_approval',
-  description: 'Get the result of a payment that was waiting for the user to approve it.',
+  description: 'Get the result of a payment Warden held for approval or was still processing.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -60,7 +60,7 @@ export function toolLister(connector: GatewayDeps['connector']) {
 
 function render(callId: string, held: Held, approvalUrl: string): ToolResult {
   if ('done' in held) return finished(callId, held.done);
-  if ('pending' in held) return pending(callId, approvalUrl);
+  if ('pending' in held) return pending(callId, approvalUrl, held.pending);
   if ('failed' in held) {
     return denied(
       callId,

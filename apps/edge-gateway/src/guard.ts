@@ -25,7 +25,14 @@ export class Guard {
     });
     let timer: NodeJS.Timeout | undefined;
     const held = new Promise<Held>((resolve) => {
-      timer = setTimeout(() => resolve({ pending: 'awaiting_approval' }), this.holdMs);
+      // out of time: say what the workflow is actually doing, since a slow upstream
+      // isn't the same as waiting on the user
+      timer = setTimeout(() => {
+        handle.query<string>('status').then(
+          (status) => resolve({ pending: status }),
+          () => resolve({ pending: 'processing' }),
+        );
+      }, this.holdMs);
     });
     try {
       const result = handle.result().then(

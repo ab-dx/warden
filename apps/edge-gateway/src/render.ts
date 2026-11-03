@@ -25,7 +25,17 @@ export function denied(callId: string, reasons: GuardReason[], outcome = 'deny')
   };
 }
 
-export function pending(callId: string, approvalUrl: string): ToolResult {
+export function pending(callId: string, approvalUrl: string, status: string): ToolResult {
+  if (status !== 'awaiting_approval') {
+    return body({
+      outcome: 'pending',
+      code: 'IN_PROGRESS',
+      message:
+        'Warden is still processing this call. Call warden_check_approval with this callId shortly. Do not retry it.',
+      callId,
+      approvalUrl: null,
+    });
+  }
   return body({
     outcome: 'pending',
     code: 'PENDING_APPROVAL',

@@ -124,6 +124,14 @@ describe('gateway mcp server', () => {
     expect(s.guarded).toEqual([]);
   });
 
+  it('tells a slow call apart from one waiting for the user', async () => {
+    const s = setup();
+    (s.deps.guard as unknown as { check: unknown }).check = async () => ({ pending: 'forwarding' });
+    const { call } = await connect(s.deps);
+    const r = await call('warden_check_approval', { callId: 'c_1' });
+    expect(r.body.warden).toMatchObject({ code: 'IN_PROGRESS', approvalUrl: null });
+  });
+
   it('only shows a pending call to the agent that made it', async () => {
     const mine = await connect(setup().deps, 'ops-agent');
     expect((await mine.call('warden_check_approval', { callId: 'c_1' })).body.warden.code).toBe(
