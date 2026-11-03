@@ -75,7 +75,16 @@ services:
     image: jaegertracing/jaeger:2.22.0
     ports: ["16686:16686", "4317:4317", "4318:4318"]
 
+  # optional local model for the demo agent: docker compose --profile llm up -d ollama
+  ollama:
+    image: ollama/ollama:0.40.14
+    profiles: [llm]
+    ports: ["11434:11434"]
+    volumes:
+      - ollama:/root/.ollama
+
 volumes:
+  ollama:
   postgres:
   kafka:
   temporal:

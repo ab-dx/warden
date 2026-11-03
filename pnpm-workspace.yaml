@@ -2,6 +2,7 @@ packages:
   - apps/*
   - packages/*
   - bench
+  - demo/*
 
 # native or postinstall builds we allow; everything else is blocked
 allowBuilds:

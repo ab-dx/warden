@@ -558,6 +558,15 @@ importers:
         specifier: 12.2.1
         version: 12.2.1(supports-color@8.1.1)
 
+  demo/ops-agent:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: 1.32.2
+        version: 1.32.2(supports-color@8.1.1)(zod@4.6.7)
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+
   packages/contracts:
     dependencies:
       '@bufbuild/protobuf':
