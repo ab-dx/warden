@@ -1,4 +1,4 @@
-import { create } from '@bufbuild/protobuf';
+import { create, type MessageInitShape } from '@bufbuild/protobuf';
 import { timestampNow } from '@bufbuild/protobuf/wkt';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { type Event, EventSchema, Outcome, Tier } from '@warden/contracts';
@@ -29,7 +29,9 @@ beforeEach(async () => {
   );
 });
 
-const ev = (callId: string, payload: Event['payload']): Event =>
+type Payload = NonNullable<MessageInitShape<typeof EventSchema>['payload']>;
+
+const ev = (callId: string, payload: Payload): Event =>
   create(EventSchema, {
     eventId: crypto.randomUUID(),
     occurredAt: timestampNow(),
