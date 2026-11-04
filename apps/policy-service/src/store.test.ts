@@ -162,6 +162,19 @@ describe('PolicyStore', () => {
     expect(daily.reasons.map((r) => r.code)).toContain('OVER_DAILY_BUDGET');
   });
 
+  it('holds a call an earlier check flagged, without touching the mandate', async () => {
+    const m = await mandate();
+    const flag = {
+      code: 'PAYEE_FROM_UNTRUSTED_CONTENT',
+      message: 'from an email',
+      check: 'provenance',
+    };
+    const held = await store.evaluateAndReserve(payout({ escalations: [flag] }));
+    expect(held).toMatchObject({ outcome: 'escalate', reasons: [flag] });
+    expect((await store.mandates({ id: m.id }))[0]?.reserved_minor).toBe('0');
+    expect((await store.evaluateAndReserve(payout({ escalations: [] }))).outcome).toBe('allow');
+  });
+
   it('holds the amount while a human decides', async () => {
     await mandate();
     const r = await store.evaluateAndReserve(payout({ counterparty: 'new-contractor@x.com' }));

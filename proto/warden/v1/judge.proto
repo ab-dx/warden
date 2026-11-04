@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package warden.v1;
+
+import "warden/v1/common.proto";
+
+// checks that look past the rules: where a payee came from, and later whether the
+// call serves the user's task. it can only hold or block a call, never clear one.
+service JudgeService {
+  rpc Assess(AssessRequest) returns (AssessResponse);
+}
+
+message AssessRequest {
+  PaymentIntent intent = 1;
+  // the agent's active mandates; their task and payees are what the user actually said
+  repeated Mandate mandates = 2;
+}
+
+message AssessResponse {
+  Outcome outcome = 1;
+  repeated Reason reasons = 2;
+}

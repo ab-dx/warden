@@ -115,11 +115,14 @@ export function policyService(
   policyFile: PolicyFile,
 ): ServiceImpl<typeof PolicyService> {
   return {
-    async evaluateAndReserve({ intent }) {
+    async evaluateAndReserve({ intent, escalations }) {
       if (!intent) return denyNow('INVALID_INTENT', 'no intent was sent');
       const parsed = toIntent(intent);
       if ('invalid' in parsed) return denyNow('INVALID_INTENT', parsed.invalid);
-      const r = await store.evaluateAndReserve(parsed);
+      const r = await store.evaluateAndReserve({
+        ...parsed,
+        escalations: escalations.map(({ code, message, check }) => ({ code, message, check })),
+      });
       return {
         outcome: OUTCOMES[r.outcome],
         reasons: r.reasons,

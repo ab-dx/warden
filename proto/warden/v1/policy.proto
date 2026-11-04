@@ -17,6 +17,9 @@ service PolicyService {
 
 message EvaluateAndReserveRequest {
   PaymentIntent intent = 1;
+  // reasons an earlier check found to hold the call for the user. they can only make
+  // the outcome stricter, and a held call never draws on the mandate.
+  repeated Reason escalations = 2;
 }
 
 message EvaluateAndReserveResponse {

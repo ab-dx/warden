@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Outcome, Reason } from '@warden/core';
+import { type Outcome, type Reason, tighten } from '@warden/core';
 import type pg from 'pg';
 import { compile, evaluate, type Facts, type Tier, type Verdict } from './engine/engine.js';
 import type { PolicyFile } from './engine/policy-file.js';
@@ -63,6 +63,8 @@ export type Intent = {
   currency?: string | undefined;
   counterparty?: string | undefined;
   fingerprint: string;
+  // reasons from checks that ran before policy (provenance); they only tighten
+  escalations?: Reason[] | undefined;
 };
 
 export type Evaluated = Verdict & {
@@ -186,7 +188,10 @@ export class PolicyStore {
         recentCalls: recent.rows[0]?.n ?? 0,
         duplicate: (dup.rows[0]?.n ?? 0) > 0,
       };
-      const verdict = evaluate(policy, policies, facts);
+      const verdict = tighten(evaluate(policy, policies, facts), {
+        outcome: intent.escalations?.length ? 'escalate' : 'allow',
+        reasons: intent.escalations ?? [],
+      });
 
       // hold the amount while a human decides too, so parallel calls can't spend it meanwhile.
       // only a call the mandate allowed by itself draws on the mandate; anything escalated is
