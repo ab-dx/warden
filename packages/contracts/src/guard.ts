@@ -30,7 +30,7 @@ export type Forwarded = {
 
 export type Decision = { approved: boolean; by: string };
 
-export type GuardDecidedBy = 'policy' | 'human' | 'timeout';
+export type GuardDecidedBy = 'policy' | 'judge' | 'human' | 'timeout';
 
 export type GuardResult = {
   outcome: 'allow' | 'deny';

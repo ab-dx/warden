@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
 import { NativeConnection, Worker } from '@temporalio/worker';
-import { ConnectorService, PolicyService } from '@warden/contracts';
+import { ConnectorService, JudgeService, PolicyService } from '@warden/contracts';
 import { startOutbox } from '@warden/outbox';
 import { internalClient } from '@warden/service-kit';
 import pg from 'pg';
@@ -40,11 +40,16 @@ export class GuardRuntime implements OnApplicationBootstrap, OnApplicationShutdo
       activities: createActivities({
         policy: internalClient(PolicyService, c.POLICY_URL, c.POLICY_TOKEN),
         connector: internalClient(ConnectorService, c.CONNECTOR_URL, c.CONNECTOR_TOKEN),
+        judge:
+          c.JUDGE_URL && c.JUDGE_TOKEN
+            ? internalClient(JudgeService, c.JUDGE_URL, c.JUDGE_TOKEN)
+            : undefined,
         pool: this.pool,
       }),
     });
     this.running = this.worker.run();
     this.log.log(`polling ${c.GUARD_TASK_QUEUE} on ${c.TEMPORAL_ADDRESS}`);
+    if (!c.JUDGE_URL) this.log.warn('no JUDGE_URL: provenance checks are off');
   }
 
   async onApplicationShutdown() {

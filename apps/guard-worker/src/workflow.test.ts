@@ -19,7 +19,8 @@ afterAll(async () => {
 });
 
 type Script = {
-  evaluate: () => Promise<Evaluation>;
+  assess?: () => Promise<Evaluation>;
+  evaluate: (escalations: unknown[]) => Promise<Evaluation>;
   forward?: () => Promise<Forwarded>;
 };
 
@@ -27,7 +28,8 @@ function fakes(script: Script) {
   const log: string[] = [];
   const events: GuardEvent[] = [];
   const activities: Activities = {
-    evaluate: async () => script.evaluate(),
+    assess: async () => (script.assess ?? (async () => ({ outcome: 'allow', reasons: [] })))(),
+    evaluate: async (_input, escalations = []) => script.evaluate(escalations),
     forward: async () => {
       log.push('forward');
       return (script.forward ?? (async () => ({ ok: true, content: [], upstreamRef: 'R1' })))();
@@ -134,6 +136,49 @@ describe('paymentGuard', () => {
       'decisionMade',
       'paymentExecuted',
     ]);
+  });
+
+  it('passes a provenance hold to policy, which can only tighten it', async () => {
+    const flag = { code: 'PAYEE_FROM_UNTRUSTED_CONTENT', message: 'm', check: 'provenance' };
+    let got: unknown[] = [];
+    const r = await run(
+      {
+        assess: async () => ({ outcome: 'escalate', reasons: [flag] }),
+        evaluate: async (escalations) => {
+          got = escalations;
+          return { outcome: 'escalate', reasons: [flag] };
+        },
+      },
+      'provenance-hold',
+      undefined,
+      { approvalTimeoutMs: 1000 },
+    );
+    expect(got).toEqual([flag]);
+    expect(r.result).toMatchObject({ outcome: 'deny', decidedBy: 'timeout' });
+    expect(r.log).not.toContain('forward');
+  });
+
+  it('denies without asking policy when the judge is down', async () => {
+    let asked = false;
+    const r = await run(
+      {
+        assess: async () => {
+          throw new Error('judge down');
+        },
+        evaluate: async () => {
+          asked = true;
+          return { outcome: 'allow', reasons: [], reservationId: 'res9' };
+        },
+      },
+      'judge-down',
+    );
+    expect(r.result).toMatchObject({
+      outcome: 'deny',
+      decidedBy: 'judge',
+      reasons: [{ code: 'CHECK_FAILED', check: 'judge' }],
+    });
+    expect(asked).toBe(false);
+    expect(r.log).toEqual([]);
   });
 
   it('keeps the first answer when a second one arrives', async () => {

@@ -46,21 +46,35 @@ export async function paymentGuard(input: GuardInput): Promise<GuardResult> {
     decision ??= d;
   });
 
-  let ev: Evaluation;
+  let pre: Evaluation;
   try {
-    ev = await policy.evaluate(input);
+    pre = await policy.assess(input);
   } catch {
-    ev = {
+    pre = {
       outcome: 'deny',
-      reasons: [
-        { code: 'CHECK_FAILED', message: 'policy service did not answer', check: 'policy' },
-      ],
+      reasons: [{ code: 'CHECK_FAILED', message: 'judge service did not answer', check: 'judge' }],
     };
+  }
+
+  // a judge deny skips policy, so nothing is reserved; a judge hold goes to policy,
+  // which can only make it stricter
+  let ev: Evaluation = pre;
+  if (pre.outcome !== 'deny') {
+    try {
+      ev = await policy.evaluate(input, pre.outcome === 'escalate' ? pre.reasons : []);
+    } catch {
+      ev = {
+        outcome: 'deny',
+        reasons: [
+          { code: 'CHECK_FAILED', message: 'policy service did not answer', check: 'policy' },
+        ],
+      };
+    }
   }
 
   let outcome: 'allow' | 'deny' = ev.outcome === 'allow' ? 'allow' : 'deny';
   let reasons = ev.reasons;
-  let decidedBy: GuardDecidedBy = 'policy';
+  let decidedBy: GuardDecidedBy = pre.outcome === 'deny' ? 'judge' : 'policy';
 
   if (ev.outcome === 'escalate') {
     const timeoutMs = input.approvalTimeoutMs ?? DEFAULT_APPROVAL_TIMEOUT_MS;

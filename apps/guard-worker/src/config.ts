@@ -10,6 +10,9 @@ const schema = z.object({
   POLICY_TOKEN: z.string().min(32),
   CONNECTOR_URL: z.url().default('http://localhost:7001'),
   CONNECTOR_TOKEN: z.string().min(32),
+  // unset runs payments through policy alone (the baseline the benchmark compares against)
+  JUDGE_URL: z.preprocess((v) => v || undefined, z.url().optional()),
+  JUDGE_TOKEN: z.preprocess((v) => v || undefined, z.string().min(32).optional()),
   GUARD_PORT: z.coerce.number().int().positive().default(7002),
 });
 
@@ -21,5 +24,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     const keys = parsed.error.issues.map((i) => i.path.join('.')).join(', ');
     throw new Error(`invalid guard-worker config: ${keys}`);
   }
+  if (parsed.data.JUDGE_URL && !parsed.data.JUDGE_TOKEN)
+    throw new Error('invalid guard-worker config: JUDGE_TOKEN');
   return parsed.data;
 }

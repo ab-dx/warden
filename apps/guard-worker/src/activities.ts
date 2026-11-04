@@ -2,11 +2,20 @@ import { createHash } from 'node:crypto';
 import { create, fromJson, type JsonObject } from '@bufbuild/protobuf';
 import { timestampFromDate, timestampNow } from '@bufbuild/protobuf/wkt';
 import type { Client } from '@connectrpc/connect';
-import type { Evaluation, Forwarded, GuardEvent, GuardInput, Json } from '@warden/contracts';
+import type {
+  Evaluation,
+  Forwarded,
+  GuardEvent,
+  GuardInput,
+  GuardReason,
+  Json,
+} from '@warden/contracts';
 import {
   type ConnectorService,
   DecidedBy,
   EventSchema,
+  type JudgeService,
+  MandateStatus,
   Outcome,
   PaymentIntentSchema,
   type PolicyService,
@@ -18,6 +27,8 @@ import type { Pool } from 'pg';
 export type Deps = {
   policy: Client<typeof PolicyService>;
   connector: Client<typeof ConnectorService>;
+  // without a judge, payments are decided by policy alone
+  judge?: Client<typeof JudgeService> | undefined;
   pool: Pool;
 };
 
@@ -31,7 +42,12 @@ const OUTCOME_TO_PROTO: Record<CoreOutcome, Outcome> = {
   escalate: Outcome.ESCALATE,
   deny: Outcome.DENY,
 };
-const DECIDED_BY = { policy: DecidedBy.POLICY, human: DecidedBy.HUMAN, timeout: DecidedBy.TIMEOUT };
+const DECIDED_BY = {
+  policy: DecidedBy.POLICY,
+  judge: DecidedBy.JUDGE,
+  human: DecidedBy.HUMAN,
+  timeout: DecidedBy.TIMEOUT,
+};
 
 const intentOf = (input: { intent: GuardInput['intent'] }) =>
   fromJson(PaymentIntentSchema, input.intent);
@@ -42,10 +58,32 @@ export function eventId(callId: string, kind: string): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
-export function createActivities({ policy, connector, pool }: Deps) {
+export function createActivities({ policy, connector, judge, pool }: Deps) {
   return {
-    async evaluate(input: GuardInput): Promise<Evaluation> {
-      const res = await policy.evaluateAndReserve({ intent: intentOf(input) });
+    // provenance runs before policy so a call it holds never draws on the mandate
+    async assess(input: GuardInput): Promise<Evaluation> {
+      if (!judge) return { outcome: 'allow', reasons: [] };
+      const intent = intentOf(input);
+      const { mandates } = await policy.listMandates({ agentId: intent.agentId });
+      const res = await judge.assess({
+        intent,
+        mandates: mandates.filter((m) => m.status === MandateStatus.ACTIVE),
+      });
+      const outcome = OUTCOME_FROM_PROTO[res.outcome];
+      if (!outcome) {
+        return {
+          outcome: 'deny',
+          reasons: [{ code: 'CHECK_FAILED', message: 'judge returned no outcome', check: 'judge' }],
+        };
+      }
+      return {
+        outcome,
+        reasons: res.reasons.map(({ code, message, check }) => ({ code, message, check })),
+      };
+    },
+
+    async evaluate(input: GuardInput, escalations: GuardReason[] = []): Promise<Evaluation> {
+      const res = await policy.evaluateAndReserve({ intent: intentOf(input), escalations });
       const outcome = OUTCOME_FROM_PROTO[res.outcome];
       if (!outcome) {
         return {
