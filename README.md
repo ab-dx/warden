@@ -54,9 +54,12 @@ For MCP clients that take a URL, that is the whole change: point them at Warden 
 `demo/ops-agent` is an operations assistant for a small design studio. It reads the day's inbox and pays invoices and refunds. One invoice hides an instruction to send the payment to a different account.
 
 ```sh
-pnpm --filter @warden/ops-agent inbox &    # the studio's inbox, as an MCP server
 pnpm --filter @warden/ops-agent agent
 ```
+
+`pnpm app:up` already runs the studio's inbox as an MCP server on port 7010. When running the services on the host instead, start it with `pnpm --filter @warden/ops-agent inbox`.
+
+The agent reaches the inbox through Warden too (`UNTRUSTED_MCP_URLS`). Warden passes the emails through unchanged, but first records the payees, amounts and PayPal ids in them as untrusted content seen in that session. If that record can't be written, the agent doesn't get the content. A proxied server can't offer a tool with a PayPal tool's name.
 
 By default the agent's brain is scripted: it does the job, and also obeys instructions it finds in emails, which is what a prompt-injected model does. To use a real model, set `AGENT_DRIVER=llm` with any OpenAI-compatible endpoint (`AGENT_BASE_URL`, `AGENT_MODEL`, `AGENT_API_KEY`). `docker compose --profile llm up -d ollama` runs a small local one.
 

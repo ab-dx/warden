@@ -170,6 +170,7 @@ services:
       <<: *internal
       GATEWAY_DATABASE_URL: postgres://gateway:${SERVICE_DB_PASSWORD:-warden}@postgres:5432/gateway
       DASHBOARD_URL: http://localhost:7005
+      UNTRUSTED_MCP_URLS: http://inbox:7010/mcp
     depends_on:
       <<: *infra
       guard-worker: { condition: service_healthy }
@@ -184,6 +185,17 @@ services:
             "fetch('http://localhost:7000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
           ],
       }
+
+  # the demo agent's mailbox. the agent reaches it through the gateway
+  inbox:
+    <<: *app
+    build: { context: ., args: { APP: ops-agent } }
+    command: ["dist/inbox-server.js"]
+    ports: ["7010:7010"]
+    environment:
+      SEED_FILE: /seed/sandbox.json
+    volumes: ["./.seed:/seed:ro"]
+    depends_on: {}
 
   ledger-service:
     <<: *app

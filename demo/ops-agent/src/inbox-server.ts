@@ -38,7 +38,10 @@ export function inboxServer(scenario: Scenario) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const seed = JSON.parse(
-    readFileSync(new URL('../../../.seed/sandbox.json', import.meta.url), 'utf8'),
+    readFileSync(
+      process.env.SEED_FILE ?? new URL('../../../.seed/sandbox.json', import.meta.url),
+      'utf8',
+    ),
   ) as {
     orders: { captureId: string; amount: { value: string } }[];
   };

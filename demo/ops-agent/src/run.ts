@@ -9,7 +9,8 @@ const env = z
   .object({
     WARDEN_MCP_URL: z.url().default('http://localhost:7000/mcp'),
     WARDEN_AGENT_KEY: z.string().min(24),
-    INBOX_URL: z.url().default('http://localhost:7010/mcp'),
+    // set only to bypass warden for the inbox; normally warden proxies it
+    INBOX_URL: z.url().optional(),
     AGENT_DRIVER: z.enum(['scripted', 'llm']).default('scripted'),
     AGENT_BASE_URL: z.url().optional(),
     AGENT_MODEL: z.string().optional(),
@@ -41,7 +42,7 @@ if (env.AGENT_DRIVER === 'llm') {
 await runAgent({
   brain,
   endpoints: [
-    { url: env.INBOX_URL },
+    ...(env.INBOX_URL ? [{ url: env.INBOX_URL }] : []),
     { url: env.WARDEN_MCP_URL, headers: { authorization: `Bearer ${env.WARDEN_AGENT_KEY}` } },
   ],
   system:
