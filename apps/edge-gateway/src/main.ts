@@ -11,10 +11,12 @@ import { internalClient } from '@warden/service-kit';
 import type { Request, Response } from 'express';
 import pg from 'pg';
 import { agentKeys } from './agents.js';
-import { outboxAudit } from './audit.js';
+import { outboxAudit, outboxObserve } from './audit.js';
 import { loadConfig } from './config.js';
 import { Guard } from './guard.js';
 import { type GatewayDeps, gatewayServer, toolLister } from './mcp.js';
+import { TIERS } from './registry.js';
+import { untrustedServers } from './untrusted.js';
 
 const config = loadConfig();
 const log = new Logger('edge-gateway');
@@ -35,6 +37,12 @@ const deps: GatewayDeps = {
   connector,
   guard: new Guard(temporal, config.GUARD_TASK_QUEUE, config.GATEWAY_HOLD_MS),
   audit: outboxAudit(pool),
+  untrusted: untrustedServers(
+    config.UNTRUSTED_MCP_URLS,
+    (name) => name in TIERS || name.startsWith('warden_'),
+    (msg) => log.warn(msg),
+  ),
+  observe: outboxObserve(pool),
   approvalUrl: (id) => `${config.DASHBOARD_URL}/approvals/${id}`,
   approvalTimeoutMs: config.APPROVAL_TIMEOUT_MS,
 };

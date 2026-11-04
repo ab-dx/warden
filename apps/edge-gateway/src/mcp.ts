@@ -7,10 +7,12 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { ConnectorService, GuardInput, Json } from '@warden/contracts';
+import { contentTokens } from '@warden/core';
 import type { Guard, Held } from './guard.js';
 import { buildIntent, intentJson, newCallId, redact } from './intent.js';
 import { type Lookup, normalise, TIERS } from './registry.js';
 import { denied, finished, pending, type ToolResult } from './render.js';
+import type { Untrusted } from './untrusted.js';
 
 export type Audit = (e: {
   callId: string;
@@ -18,10 +20,18 @@ export type Audit = (e: {
   redactedArgs: unknown;
 }) => Promise<void>;
 
+export type Observe = (e: {
+  sessionId: string;
+  sourceTool: string;
+  tokens: string[];
+}) => Promise<void>;
+
 export type GatewayDeps = {
   connector: RpcClient<typeof ConnectorService>;
   guard: Guard;
   audit: Audit;
+  untrusted: Untrusted;
+  observe: Observe;
   approvalUrl: (callId: string) => string;
   approvalTimeoutMs: number;
 };
@@ -107,8 +117,37 @@ export function gatewayServer(
     }
   };
 
+  // the agent only gets to see content warden has recorded, so provenance never misses a read
+  const readUntrusted = async (name: string, args: Record<string, unknown>) => {
+    let r: ToolResult | undefined;
+    try {
+      r = await deps.untrusted.call(name, args);
+    } catch {
+      return denied(newCallId(), [
+        { code: 'TOOL_FAILED', message: `${name} could not be reached.`, check: 'gateway' },
+      ]);
+    }
+    if (!r) return undefined;
+    const text = (r.content as { text?: unknown }[])
+      .map((c) => (typeof c.text === 'string' ? c.text : ''))
+      .join('\n');
+    const tokens = contentTokens(text);
+    try {
+      if (tokens.length) await deps.observe({ sessionId: sessionId(), sourceTool: name, tokens });
+    } catch {
+      return denied(newCallId(), [
+        {
+          code: 'AUDIT_UNAVAILABLE',
+          message: 'Warden could not record what this tool returned, so it was withheld.',
+          check: 'gateway',
+        },
+      ]);
+    }
+    return r;
+  };
+
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [...(await listTools()), CHECK_TOOL],
+    tools: [...(await listTools()), ...(await deps.untrusted.list()), CHECK_TOOL],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
@@ -123,13 +162,16 @@ export function gatewayServer(
     const tier = TIERS[name];
     const callId = newCallId();
     if (!tier)
-      return denied(callId, [
-        {
-          code: 'TOOL_NOT_AVAILABLE',
-          message: `${name} is not available through Warden.`,
-          check: 'gateway',
-        },
-      ]);
+      return (
+        (await readUntrusted(name, args)) ??
+        denied(callId, [
+          {
+            code: 'TOOL_NOT_AVAILABLE',
+            message: `${name} is not available through Warden.`,
+            check: 'gateway',
+          },
+        ])
+      );
 
     const n = tier === 'T2' || tier === 'T3' ? await normalise(name, args, lookup) : { refs: {} };
     const intent = buildIntent(callId, agentId, sessionId(), name, tier, n);

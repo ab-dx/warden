@@ -14,6 +14,17 @@ const schema = z.object({
   GATEWAY_HOLD_MS: z.coerce.number().int().positive().default(45_000),
   APPROVAL_TIMEOUT_MS: z.coerce.number().int().positive().default(120_000),
   DASHBOARD_URL: z.url().default('http://localhost:5173'),
+  // the agent's non-paypal mcp servers (inbox, web); their output counts as untrusted
+  UNTRUSTED_MCP_URLS: z
+    .string()
+    .default('')
+    .transform((s) =>
+      s
+        .split(',')
+        .map((u) => u.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.url())),
 });
 
 export type Config = z.infer<typeof schema>;
