@@ -1,6 +1,6 @@
 import { create } from '@bufbuild/protobuf';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { MandateSchema, Outcome, PaymentIntentSchema } from '@warden/contracts';
+import { MandateSchema, Outcome, PaymentIntentSchema, Tier } from '@warden/contracts';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { judgeService } from './service.js';
@@ -24,11 +24,15 @@ afterAll(async () => {
   await container?.stop();
 });
 
-const judge = () => judgeService((id) => seen(pool, id));
-const assess = (counterparty: string, sessionId = 's1') =>
-  judge().assess(
+const assess = (counterparty: string, sessionId = 's1', llm?: Parameters<typeof judgeService>[1]) =>
+  judgeService((id) => seen(pool, id), llm).assess(
     {
-      intent: create(PaymentIntentSchema, { sessionId, counterparty, tool: 'send_payout' }),
+      intent: create(PaymentIntentSchema, {
+        sessionId,
+        counterparty,
+        tool: 'send_payout',
+        tier: Tier.MONEY_OUT,
+      }),
       mandates: [
         create(MandateSchema, {
           task: 'pay approved contractor invoices',
@@ -59,5 +63,23 @@ describe('provenance', () => {
     expect((await assess('new-bank@attacker.example', 'other-session')).outcome).toBe(
       Outcome.ALLOW,
     );
+  });
+});
+
+describe('llm judge', () => {
+  it('adds its hold to the provenance one and can never clear a call', async () => {
+    const yes = async () => ({ outcome: 'allow' as const, reasons: [] });
+    const no = async () => ({
+      outcome: 'escalate' as const,
+      reasons: [{ code: 'JUDGE_GOAL_MISMATCH', message: 'm', check: 'judge' }],
+    });
+    const both = await assess('new-bank@attacker.example', 's1', no);
+    expect(both.reasons?.map((r) => r.code)).toEqual([
+      'PAYEE_FROM_UNTRUSTED_CONTENT',
+      'JUDGE_GOAL_MISMATCH',
+    ]);
+    expect((await assess('new-bank@attacker.example', 's1', yes)).outcome).toBe(Outcome.ESCALATE);
+    expect((await assess('arjun@mehta.example', 's1', no)).outcome).toBe(Outcome.ESCALATE);
+    expect((await assess('arjun@mehta.example', 's1', yes)).outcome).toBe(Outcome.ALLOW);
   });
 });

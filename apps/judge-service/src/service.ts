@@ -1,10 +1,13 @@
 import type { ServiceImpl } from '@connectrpc/connect';
-import { type JudgeService, Outcome } from '@warden/contracts';
-import { payeeOnlyFromUntrusted } from '@warden/core';
+import { type JudgeService, Outcome, Tier } from '@warden/contracts';
+import { allow, payeeOnlyFromUntrusted, tighten, type Verdict } from '@warden/core';
+import type { IntentJudge } from './intent.js';
 
 export type Seen = (sessionId: string) => Promise<string[]>;
 
-export function judgeService(seen: Seen): ServiceImpl<typeof JudgeService> {
+const OUTCOMES = { allow: Outcome.ALLOW, escalate: Outcome.ESCALATE, deny: Outcome.DENY } as const;
+
+export function judgeService(seen: Seen, judge?: IntentJudge): ServiceImpl<typeof JudgeService> {
   return {
     async assess({ intent, mandates }) {
       if (!intent) {
@@ -15,9 +18,11 @@ export function judgeService(seen: Seen): ServiceImpl<typeof JudgeService> {
       }
       const userText = mandates.flatMap((m) => [m.task, ...m.counterparties]);
       const tokens = intent.sessionId ? await seen(intent.sessionId) : [];
+
+      let v: Verdict = allow();
       if (payeeOnlyFromUntrusted(intent.counterparty, tokens, userText)) {
-        return {
-          outcome: Outcome.ESCALATE,
+        v = {
+          outcome: 'escalate',
           reasons: [
             {
               code: 'PAYEE_FROM_UNTRUSTED_CONTENT',
@@ -27,7 +32,11 @@ export function judgeService(seen: Seen): ServiceImpl<typeof JudgeService> {
           ],
         };
       }
-      return { outcome: Outcome.ALLOW, reasons: [] };
+      // with no mandate there is no task to judge against, and policy holds the call anyway
+      if (judge && intent.tier === Tier.MONEY_OUT && mandates.length > 0)
+        v = tighten(v, await judge(intent, mandates, tokens));
+
+      return { outcome: OUTCOMES[v.outcome], reasons: v.reasons };
     },
   };
 }
