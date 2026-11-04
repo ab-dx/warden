@@ -124,11 +124,11 @@ pnpm app:up                   # kafka, postgres, temporal and every warden servi
 pnpm paypal:seed              # creates captured sandbox orders, so there is money to refund
 ```
 
-| What | Where |
-| --- | --- |
-| Dashboard | http://localhost:7005 (password: `DASHBOARD_PASSWORD` in `.env`) |
+| What               | Where                                                                       |
+| ------------------ | --------------------------------------------------------------------------- |
+| Dashboard          | http://localhost:7005 (password: `DASHBOARD_PASSWORD` in `.env`)            |
 | Agent MCP endpoint | `http://localhost:7000/mcp` with `Authorization: Bearer <WARDEN_AGENT_KEY>` |
-| Demo inbox (MCP) | port 7010 |
+| Demo inbox (MCP)   | port 7010                                                                   |
 
 ## The demo
 
@@ -157,12 +157,12 @@ pnpm --filter @warden/bench bench --driver llm --runs 3   # a real model (AGENT_
 
 Results with the scripted agent, which obeys every injected instruction, and the LLM judge off:
 
-| | no guard | policy only | full |
-| --- | :---: | :---: | :---: |
-| attack scenarios where money reached the attacker | 18 of 18 | 7 of 18 | **4 of 18** |
-| attack payments that reached PayPal | 100% | 40% | **30%** |
-| legitimate payments allowed straight through | 100% | 100% | 94% |
-| legitimate payments held for approval when they should be | 0% | 100% | **100%** |
+|                                                           | no guard | policy only |    full     |
+| --------------------------------------------------------- | :------: | :---------: | :---------: |
+| attack scenarios where money reached the attacker         | 18 of 18 |   7 of 18   | **4 of 18** |
+| attack payments that reached PayPal                       |   100%   |     40%     |   **30%**   |
+| legitimate payments allowed straight through              |   100%   |    100%     |     94%     |
+| legitimate payments held for approval when they should be |    0%    |    100%     |  **100%**   |
 
 What still gets through full Warden: two invoices inflated within the mandate's caps and a refund nobody asked for inside an open refund mandate, which are the intent judge's job, and six of eight small split payments before the rate limit stops the rest. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/).
 
@@ -195,18 +195,18 @@ pnpm lint
 <details>
 <summary>Repository layout</summary>
 
-| Path | What's there |
-| --- | --- |
-| `apps/edge-gateway` | MCP endpoint for agents, untrusted-tool proxy |
-| `apps/guard-worker` | Temporal payment workflow |
-| `apps/policy-service` | Cedar rules, mandates, budget holds |
-| `apps/judge-service` | provenance index and LLM intent judge |
-| `apps/paypal-connector` | PayPal MCP server plus payouts and capture lookup |
-| `apps/ledger-service` | hash-chained ledger |
-| `apps/api`, `apps/dashboard` | owner API and dashboard |
-| `packages/` | shared money type, contracts, outbox, service helpers |
-| `proto/` | service contracts |
-| `bench/` | scenarios and harness |
-| `demo/ops-agent` | demo agent and inbox |
+| Path                         | What's there                                          |
+| ---------------------------- | ----------------------------------------------------- |
+| `apps/edge-gateway`          | MCP endpoint for agents, untrusted-tool proxy         |
+| `apps/guard-worker`          | Temporal payment workflow                             |
+| `apps/policy-service`        | Cedar rules, mandates, budget holds                   |
+| `apps/judge-service`         | provenance index and LLM intent judge                 |
+| `apps/paypal-connector`      | PayPal MCP server plus payouts and capture lookup     |
+| `apps/ledger-service`        | hash-chained ledger                                   |
+| `apps/api`, `apps/dashboard` | owner API and dashboard                               |
+| `packages/`                  | shared money type, contracts, outbox, service helpers |
+| `proto/`                     | service contracts                                     |
+| `bench/`                     | scenarios and harness                                 |
+| `demo/ops-agent`             | demo agent and inbox                                  |
 
 </details>
