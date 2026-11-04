@@ -20,6 +20,11 @@ const policy = proxyActivities<Activities>({
   startToCloseTimeout: '10s',
   retry: { maximumAttempts: 3 },
 });
+// the judge may wait on a model; a retry only asks it again
+const judge = proxyActivities<Activities>({
+  startToCloseTimeout: '30s',
+  retry: { maximumAttempts: 2 },
+});
 // settle, release and emit are idempotent, so keep trying until they land
 const durable = proxyActivities<Activities>({
   startToCloseTimeout: '10s',
@@ -48,7 +53,7 @@ export async function paymentGuard(input: GuardInput): Promise<GuardResult> {
 
   let pre: Evaluation;
   try {
-    pre = await policy.assess(input);
+    pre = await judge.assess(input);
   } catch {
     pre = {
       outcome: 'deny',
