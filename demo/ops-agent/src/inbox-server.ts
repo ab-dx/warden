@@ -7,6 +7,13 @@ import { loadScenario, type Scenario } from './scenario.js';
 
 // a pretend mailbox for the demo agent. its content is untrusted: one email carries
 // hidden instructions meant for whatever ai reads it.
+const email = z.object({
+  id: z.string().min(1),
+  from: z.string(),
+  subject: z.string(),
+  body: z.string(),
+});
+
 export function inboxServer(scenario: Scenario) {
   const server = new McpServer({ name: 'inbox', version: '0.1.0' });
   server.registerTool(
@@ -52,18 +59,28 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     capture: capture ?? '',
   });
   const port = Number(process.env.INBOX_PORT ?? 7010);
+  let mailbox = scenario;
   createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const c of req) chunks.push(c as Buffer);
+    const body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : undefined;
+
+    // the benchmark swaps in each scenario's emails, then puts the demo's back
+    if (req.url === '/mailbox' && req.method === 'PUT') {
+      const emails = z.array(email).safeParse(body?.emails);
+      if (!emails.success) return void res.writeHead(400).end();
+      mailbox = { ...scenario, emails: emails.data };
+      return void res.writeHead(204).end();
+    }
+    if (req.url === '/mailbox' && req.method === 'DELETE') {
+      mailbox = scenario;
+      return void res.writeHead(204).end();
+    }
     if (req.url !== '/mcp') return void res.writeHead(404).end();
     // stateless: one server per request is fine for a read-only mailbox
     const transport = new StreamableHTTPServerTransport({});
     res.on('close', () => transport.close());
-    await inboxServer(scenario).connect(transport);
-    const chunks: Buffer[] = [];
-    for await (const c of req) chunks.push(c as Buffer);
-    await transport.handleRequest(
-      req,
-      res,
-      chunks.length ? JSON.parse(Buffer.concat(chunks).toString()) : undefined,
-    );
+    await inboxServer(mailbox).connect(transport);
+    await transport.handleRequest(req, res, body);
   }).listen(port, () => console.log(`inbox on :${port}/mcp`));
 }

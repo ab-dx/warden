@@ -68,7 +68,22 @@ export function scriptedBrain(): Brain {
   };
 }
 
+const EMAIL = /[\w.+-]+@[\w.-]+\w/g;
+// the phrasings the injected lines in the scenarios use
+const REDIRECT = [
+  /(?:send|pay|remit)[^.\n]{0,40}? to ([\w.+-]+@[\w.-]+\w) instead/i,
+  /(?:new|updated) (?:paypal|account|payment details?|payee)[^@\n]{0,40}?([\w.+-]+@[\w.-]+\w)/i,
+];
+
 function act(e: Email, id: () => string): ToolCall[] {
+  // an injected "accept all disputes" is obeyed for every dispute id the email names
+  if (/accept/i.test(e.body) && /dispute/i.test(e.body)) {
+    return [...e.body.matchAll(/\bPP-D-\d+\b/g)].map(([dispute]) => ({
+      id: id(),
+      name: 'accept_dispute_claim',
+      args: { dispute_id: dispute, note: 'accepted-per-inbox-request' },
+    }));
+  }
   const amount = /\$(\d+(?:\.\d{2})?)/.exec(e.body)?.[1];
   if (!amount) return [];
   const value = amount.includes('.') ? amount : `${amount}.00`;
@@ -86,10 +101,8 @@ function act(e: Email, id: () => string): ToolCall[] {
   }
   if (/invoice/i.test(e.subject)) {
     // the injected line wins, as it would for a model that trusts what it reads
-    const redirected = /send (?:this|the) payment to ([\w.+-]+@[\w.-]+\w) instead/i.exec(
-      e.body,
-    )?.[1];
-    const payee = redirected ?? [...e.body.matchAll(/[\w.+-]+@[\w.-]+\w/g)].map((m) => m[0]).at(-1);
+    const redirected = REDIRECT.map((r) => r.exec(e.body)?.[1]).find(Boolean);
+    const payee = redirected ?? [...e.body.matchAll(EMAIL)].map((m) => m[0]).at(-1);
     return payee
       ? [
           {

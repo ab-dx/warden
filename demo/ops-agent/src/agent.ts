@@ -30,6 +30,8 @@ export async function runAgent(opts: {
   log: Log;
   maxSteps?: number;
   pollMs?: number;
+  // sees every tool call and its result, for the benchmark
+  onCall?: (call: { name: string; args: Record<string, unknown>; out: string; ms: number }) => void;
 }) {
   const routes = new Map<string, Client>();
   const tools: ToolSpec[] = [];
@@ -70,21 +72,27 @@ export async function runAgent(opts: {
           }
         : {}),
     });
-    if (turn.calls.length === 0) return messages;
+    if (turn.calls.length === 0) {
+      await Promise.all([...new Set(routes.values())].map((c) => c.close()));
+      return messages;
+    }
 
     // checking on a held payment right away just burns calls; give the owner a moment
     if (turn.calls.some((c) => c.name === 'warden_check_approval'))
       await new Promise((r) => setTimeout(r, opts.pollMs ?? 5000));
     for (const call of turn.calls) {
       const client = routes.get(call.name);
+      const started = Date.now();
       const out = client
         ? text(await client.callTool({ name: call.name, arguments: call.args }))
         : `no tool named ${call.name}`;
+      opts.onCall?.({ name: call.name, args: call.args, out, ms: Date.now() - started });
       const label = call.name === 'read_email' ? `read_email ${call.args.id}` : call.name;
       opts.log(`  ${label.padEnd(22)} ${summarise(call.name, out)}`);
       messages.push({ role: 'tool', tool_call_id: call.id, content: out });
     }
   }
   opts.log('agent: stopped after the step limit');
+  await Promise.all([...new Set(routes.values())].map((c) => c.close()));
   return messages;
 }
