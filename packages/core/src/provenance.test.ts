@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { amountToken, contentTokens } from './provenance.js';
+import { amountToken, contentTokens, payeeOnlyFromUntrusted } from './provenance.js';
 
 describe('contentTokens', () => {
   it('finds payees, amounts and paypal ids in an email', () => {
@@ -23,5 +23,34 @@ describe('contentTokens', () => {
 
   it('ignores plain numbers, words and lower-case ids', () => {
     expect(contentTokens('invoice 1043 for the DESIGNSYSTEMWORK, ref abc123def456ghi')).toEqual([]);
+  });
+});
+
+describe('payeeOnlyFromUntrusted', () => {
+  const seen = [
+    'email:arjun@mehta.example',
+    'email:new-bank@attacker.example',
+    'id:2GG279541U471931P',
+  ];
+
+  it('flags a payee that came only from an email', () => {
+    expect(
+      payeeOnlyFromUntrusted('New-Bank@attacker.example', seen, ['pay arjun@mehta.example']),
+    ).toBe(true);
+  });
+
+  it('passes a payee the user named, in the task or the payee list', () => {
+    expect(payeeOnlyFromUntrusted('arjun@mehta.example', seen, ['pay Arjun@mehta.example'])).toBe(
+      false,
+    );
+    expect(payeeOnlyFromUntrusted('arjun@mehta.example', seen, ['arjun@mehta.example'])).toBe(
+      false,
+    );
+  });
+
+  it('leaves payees the agent never read, and id counterparties, to the other checks', () => {
+    expect(payeeOnlyFromUntrusted('someone@else.example', seen, [])).toBe(false);
+    expect(payeeOnlyFromUntrusted('2GG279541U471931P', seen, [])).toBe(false);
+    expect(payeeOnlyFromUntrusted(undefined, seen, [])).toBe(false);
   });
 });

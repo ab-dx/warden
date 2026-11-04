@@ -37,6 +37,16 @@ export async function decide<C>(checks: readonly Check<C>[], ctx: C): Promise<Ve
   return { outcome, reasons };
 }
 
+// folds another check's verdict into this one. the result is at least as strict as
+// either, and the stricter verdict's reasons come first.
+export function tighten(a: Verdict, b: Verdict): Verdict {
+  const [hi, lo] = SEVERITY[b.outcome] > SEVERITY[a.outcome] ? [b, a] : [a, b];
+  return {
+    outcome: hi.outcome,
+    reasons: [...hi.reasons, ...(lo.outcome === 'allow' ? [] : lo.reasons)],
+  };
+}
+
 function deny(code: string, message: string, check: string): Verdict {
   return { outcome: 'deny', reasons: [{ code, message, check }] };
 }

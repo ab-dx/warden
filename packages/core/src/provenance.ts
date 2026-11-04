@@ -24,3 +24,17 @@ export function contentTokens(text: string): string[] {
   for (const [id] of text.matchAll(PAYPAL_ID)) out.add(idToken(id));
   return [...out].sort();
 }
+
+// a payee the agent read in untrusted content that appears nowhere the user wrote
+// (mandate tasks and payee lists). refunds, disputes and orders name ids instead, and
+// their money can only go back to the original payer, so only email payees count.
+export function payeeOnlyFromUntrusted(
+  payee: string | undefined,
+  seen: readonly string[],
+  userText: readonly string[],
+): boolean {
+  if (!payee?.includes('@')) return false;
+  const t = emailToken(payee);
+  if (!seen.includes(t)) return false;
+  return !userText.some((text) => contentTokens(text).includes(t));
+}

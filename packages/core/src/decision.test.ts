@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allow, type Check, decide, type Verdict } from './decision.js';
+import { allow, type Check, decide, tighten, type Verdict } from './decision.js';
 
 const verdict = (outcome: Verdict['outcome'], code = 'X'): Verdict => ({
   outcome,
@@ -58,5 +58,16 @@ describe('decide', () => {
     const bad = { name: 'bad', run: () => ({ outcome: 'maybe' }) as unknown as Verdict };
     expect((await decide([bad], {})).outcome).toBe('deny');
     expect((await decide([], {})).reasons[0]?.code).toBe('NO_CHECKS');
+  });
+});
+
+describe('tighten', () => {
+  it('only ever makes a verdict stricter', () => {
+    expect(tighten(allow(), verdict('escalate', 'P'))).toEqual(verdict('escalate', 'P'));
+    expect(tighten(verdict('deny', 'D'), verdict('escalate', 'P'))).toEqual({
+      outcome: 'deny',
+      reasons: [...verdict('deny', 'D').reasons, ...verdict('escalate', 'P').reasons],
+    });
+    expect(tighten(verdict('escalate', 'E'), allow())).toEqual(verdict('escalate', 'E'));
   });
 });
