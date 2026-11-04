@@ -15,6 +15,7 @@ const wanted: Record<string, string> = {
   POLICY_TOKEN: hex(32),
   CONNECTOR_TOKEN: hex(32),
   LEDGER_TOKEN: hex(32),
+  JUDGE_TOKEN: hex(32),
   SESSION_SECRET: hex(32),
   DASHBOARD_PASSWORD: hex(9),
   WARDEN_AGENT_KEY: agentKey,

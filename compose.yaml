@@ -24,6 +24,7 @@ x-internal: &internal
   POLICY_URL: http://policy-service:7003
   CONNECTOR_URL: http://paypal-connector:7001
   LEDGER_URL: http://ledger-service:7004
+  JUDGE_URL: http://judge-service:7006
 
 services:
   postgres:
@@ -150,6 +151,7 @@ services:
       <<: *infra
       policy-service: { condition: service_healthy }
       paypal-connector: { condition: service_healthy }
+      judge-service: { condition: service_healthy }
     healthcheck:
       {
         <<: *healthcheck,
@@ -183,6 +185,24 @@ services:
             "/nodejs/bin/node",
             "-e",
             "fetch('http://localhost:7000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+          ],
+      }
+
+  judge-service:
+    <<: *app
+    build: { context: ., args: { APP: judge-service } }
+    environment:
+      <<: *internal
+      JUDGE_DATABASE_URL: postgres://judge:${SERVICE_DB_PASSWORD:-warden}@postgres:5432/judge
+    healthcheck:
+      {
+        <<: *healthcheck,
+        test:
+          [
+            "CMD",
+            "/nodejs/bin/node",
+            "-e",
+            "fetch('http://localhost:7006/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
           ],
       }
 

@@ -1,0 +1,38 @@
+{
+  "name": "@warden/judge-service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node --env-file-if-exists=../../.env dist/main.js"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.16.0",
+    "@confluentinc/kafka-javascript": "1.11.0",
+    "@connectrpc/connect": "2.3.0",
+    "@connectrpc/connect-express": "2.3.0",
+    "@nestjs/common": "12.3.2",
+    "@nestjs/core": "12.3.2",
+    "@nestjs/platform-express": "12.3.2",
+    "@warden/contracts": "workspace:*",
+    "@warden/core": "workspace:*",
+    "@warden/outbox": "workspace:*",
+    "@warden/service-kit": "workspace:*",
+    "pg": "8.23.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "12.2.1",
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.23.1",
+    "testcontainers": "12.2.1"
+  }
+}
