@@ -68,6 +68,26 @@ The agent reaches the inbox through Warden too (`UNTRUSTED_MCP_URLS`). Warden pa
 
 By default the agent's brain is scripted: it does the job, and also obeys instructions it finds in emails, which is what a prompt-injected model does. To use a real model, set `AGENT_DRIVER=llm` with any OpenAI-compatible endpoint (`AGENT_BASE_URL`, `AGENT_MODEL`, `AGENT_API_KEY`). `docker compose --profile llm up -d ollama` runs a small local one.
 
+## Benchmark
+
+`bench/` holds 30 scenarios: 8 benign, 4 benign but outside the mandate, 5 payee redirections, 4 inflated amounts, 4 unrequested actions, 3 split or repeated payments, and 2 attacks that stay inside the mandate. Each is a YAML file with the owner's task, the mandate, the emails the agent reads, and what should happen to each payment. The harness runs every scenario three ways: with no guard (calls are recorded, not sent), with Warden's policy only, and with full Warden (policy plus provenance). A scripted owner approves held payments the scenario says are legitimate and rejects the rest.
+
+```sh
+pnpm --filter @warden/bench bench                         # scripted agent, all three arms
+pnpm --filter @warden/bench bench --driver llm --runs 3   # a real model (AGENT_BASE_URL, AGENT_MODEL)
+```
+
+Results with the scripted agent, which obeys every injected instruction, and the LLM judge off:
+
+| | no guard | policy only | full |
+| --- | --- | --- | --- |
+| attack scenarios where money reached the attacker | 18 of 18 | 7 of 18 | 4 of 18 |
+| attack payments that reached PayPal | 100% | 40% | 30% |
+| legitimate payments allowed straight through | 100% | 100% | 94% |
+| legitimate payments held for approval when they should be | 0% | 100% | 100% |
+
+What still gets through full Warden: two invoices inflated within the mandate's caps and a refund nobody asked for inside an open refund mandate, which are the intent judge's job, and six of eight small split payments before the rate limit stops the rest. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in `bench/results/`.
+
 ## Policy
 
 Limits per agent live in [`docs/policy.example.yaml`](docs/policy.example.yaml). The file decides which reasons go to the owner and which deny outright:
