@@ -24,7 +24,8 @@ x-internal: &internal
   POLICY_URL: http://policy-service:7003
   CONNECTOR_URL: http://paypal-connector:7001
   LEDGER_URL: http://ledger-service:7004
-  JUDGE_URL: http://judge-service:7006
+  # GUARD_JUDGE_URL= (set and empty) runs payments through policy alone
+  JUDGE_URL: ${GUARD_JUDGE_URL-http://judge-service:7006}
 
 services:
   postgres:
@@ -211,7 +212,8 @@ services:
     <<: *app
     build: { context: ., args: { APP: ops-agent } }
     command: ["dist/inbox-server.js"]
-    ports: ["7010:7010"]
+    # its mailbox can be swapped over http, so keep it on this machine
+    ports: ["127.0.0.1:7010:7010"]
     environment:
       SEED_FILE: /seed/sandbox.json
     volumes: ["./.seed:/seed:ro"]

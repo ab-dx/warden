@@ -11,6 +11,7 @@ const has = (k: string) => new RegExp(`^${k}=.+`, 'm').test(current);
 const hex = (n: number) => randomBytes(n).toString('hex');
 
 const agentKey = /^WARDEN_AGENT_KEY=(.+)$/m.exec(current)?.[1] ?? hex(24);
+const benchKey = /^BENCH_AGENT_KEY=(.+)$/m.exec(current)?.[1] ?? hex(24);
 const wanted: Record<string, string> = {
   POLICY_TOKEN: hex(32),
   CONNECTOR_TOKEN: hex(32),
@@ -19,7 +20,8 @@ const wanted: Record<string, string> = {
   SESSION_SECRET: hex(32),
   DASHBOARD_PASSWORD: hex(9),
   WARDEN_AGENT_KEY: agentKey,
-  WARDEN_AGENT_KEYS: `ops-agent:${agentKey}`,
+  BENCH_AGENT_KEY: benchKey,
+  WARDEN_AGENT_KEYS: `ops-agent:${agentKey},bench-agent:${benchKey}`,
 };
 
 // fill empty KEY= lines (as copied from .env.example) in place, append missing keys,
@@ -37,6 +39,15 @@ for (const [k, v] of Object.entries(wanted)) {
     next += `${next.endsWith('\n') ? '' : '\n'}${k}=${v}\n`;
     appended.push(k);
   }
+}
+// an .env from before the benchmark agent existed only knows the demo agent's key
+const keys = /^WARDEN_AGENT_KEYS=(.+)$/m.exec(next)?.[1];
+if (keys && !keys.split(',').some((k) => k.startsWith('bench-agent:'))) {
+  next = next.replace(
+    /^WARDEN_AGENT_KEYS=.+$/m,
+    `WARDEN_AGENT_KEYS=${keys},bench-agent:${benchKey}`,
+  );
+  filled.push('WARDEN_AGENT_KEYS');
 }
 const done = [...filled, ...appended];
 if (done.length) writeFileSync(file, next);
