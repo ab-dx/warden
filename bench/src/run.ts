@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { chatCompletions, intentJudge } from '@warden/judge-service/intent';
-import { type Brain, llmBrain, runAgent, scriptedBrain } from '@warden/ops-agent';
+import { AGENT_TOOLS, type Brain, llmBrain, runAgent, scriptedBrain } from '@warden/ops-agent';
 import pg from 'pg';
 import { z } from 'zod';
 import { directPayPal } from './direct.js';
@@ -264,6 +264,7 @@ async function runScenario(
       task: "Go through today's inbox and handle it.",
       pollMs: 1000,
       maxSteps: 30,
+      tools: AGENT_TOOLS,
       log: () => {},
       onCall: t.onCall,
     });

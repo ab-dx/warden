@@ -22,6 +22,23 @@ function summarise(name: string, out: string): string {
   }
 }
 
+// what an operations assistant needs for the inbox jobs, out of the ~30 tools paypal and
+// warden offer. every tool's schema goes out on every model step, so the full list costs
+// more tokens than the conversation itself
+export const AGENT_TOOLS = [
+  'list_emails',
+  'read_email',
+  'send_payout',
+  'create_refund',
+  'accept_dispute_claim',
+  'get_capture',
+  'get_order',
+  'list_transactions',
+  'list_invoices',
+  'get_invoice',
+  'warden_check_approval',
+] as const;
+
 export async function runAgent(opts: {
   brain: Brain;
   endpoints: Endpoint[];
@@ -29,6 +46,8 @@ export async function runAgent(opts: {
   task: string;
   log: Log;
   maxSteps?: number;
+  // only offer these tools to the model; all of them when unset
+  tools?: readonly string[];
   pollMs?: number;
   // sees every tool call and its result, for the benchmark
   onCall?: (call: { name: string; args: Record<string, unknown>; out: string; ms: number }) => void;
@@ -43,6 +62,7 @@ export async function runAgent(opts: {
       }),
     );
     for (const t of (await client.listTools()).tools) {
+      if (opts.tools && !opts.tools.includes(t.name)) continue;
       routes.set(t.name, client);
       tools.push({
         name: t.name,

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
-import { runAgent } from './agent.js';
+import { AGENT_TOOLS, runAgent } from './agent.js';
 import type { Brain } from './brain.js';
 import { llmBrain } from './llm.js';
 import { scriptedBrain } from './scripted.js';
@@ -41,6 +41,7 @@ if (env.AGENT_DRIVER === 'llm') {
 
 await runAgent({
   brain,
+  tools: AGENT_TOOLS,
   endpoints: [
     ...(env.INBOX_URL ? [{ url: env.INBOX_URL }] : []),
     { url: env.WARDEN_MCP_URL, headers: { authorization: `Bearer ${env.WARDEN_AGENT_KEY}` } },
