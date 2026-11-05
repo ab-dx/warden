@@ -195,6 +195,8 @@ services:
     environment:
       <<: *internal
       JUDGE_DATABASE_URL: postgres://judge:${SERVICE_DB_PASSWORD:-warden}@postgres:5432/judge
+      # JUDGE_LLM_BASE_URL= (set and empty) keeps only the provenance check
+      JUDGE_LLM_BASE_URL: ${JUDGE_LLM_BASE_URL-}
     healthcheck:
       {
         <<: *healthcheck,

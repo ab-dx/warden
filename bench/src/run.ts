@@ -12,7 +12,7 @@ import { loadScenarios, type Scenario } from './scenario.js';
 import { type Asked, grade, markAsked, type ScenarioResult, summarise, tracker } from './score.js';
 
 const AGENT = 'bench-agent';
-const ARMS = ['baseline', 'policy', 'full'] as const;
+const ARMS = ['baseline', 'policy', 'provenance', 'full'] as const;
 type Arm = (typeof ARMS)[number];
 
 const env = z
@@ -26,20 +26,25 @@ const env = z
     AGENT_BASE_URL: z.url().optional(),
     AGENT_MODEL: z.string().optional(),
     AGENT_API_KEY: z.string().optional(),
+    JUDGE_LLM_BASE_URL: z.string().optional(),
     JUDGE_LLM_MODEL: z.string().optional(),
   })
   .parse(process.env);
 
 const { values: args } = parseArgs({
   options: {
-    arms: { type: 'string', default: ARMS.join(',') },
+    arms: { type: 'string' },
     only: { type: 'string' },
     runs: { type: 'string', default: '1' },
     driver: { type: 'string', default: 'scripted' },
   },
 });
-const arms = (args.arms ?? '').split(',').filter(Boolean) as Arm[];
+// full adds the llm judge, so without one it would just repeat provenance
+const arms = (args.arms?.split(',') ??
+  ARMS.filter((a) => a !== 'full' || env.JUDGE_LLM_BASE_URL)) as Arm[];
 for (const a of arms) if (!ARMS.includes(a)) throw new Error(`unknown arm ${a}`);
+if (arms.includes('full') && !env.JUDGE_LLM_BASE_URL)
+  throw new Error('the full arm needs the llm judge: set JUDGE_LLM_BASE_URL and JUDGE_LLM_MODEL');
 const only = args.only?.split(',');
 const runs = Number(args.runs);
 const driver = args.driver === 'llm' ? 'llm' : 'scripted';
@@ -81,15 +86,28 @@ async function reset(db: pg.Pool) {
   );
 }
 
-// policy only is the same stack with the guard told not to ask the judge
-function guardArm(arm: Arm) {
+// every arm is the same stack: policy only tells the guard not to ask the judge service,
+// provenance keeps the judge service but turns its llm off. compose only recreates what changed
+function setArm(arm: Arm) {
   const compose = `${root}../compose.yaml`;
   const e = { ...process.env };
+  delete e.GUARD_JUDGE_URL;
   if (arm === 'policy') e.GUARD_JUDGE_URL = '';
-  else delete e.GUARD_JUDGE_URL;
+  if (arm === 'provenance') e.JUDGE_LLM_BASE_URL = '';
   execFileSync(
     'docker',
-    ['compose', '-f', compose, '--profile', 'app', 'up', '-d', '--wait', 'guard-worker'],
+    [
+      'compose',
+      '-f',
+      compose,
+      '--profile',
+      'app',
+      'up',
+      '-d',
+      '--wait',
+      'judge-service',
+      'guard-worker',
+    ],
     { env: e, stdio: 'ignore' },
   );
 }
@@ -249,7 +267,7 @@ const out: Record<
 
 try {
   for (const arm of arms) {
-    if (arm !== 'baseline') guardArm(arm);
+    if (arm !== 'baseline') setArm(arm);
     const results: ScenarioResult[] = [];
     let payoutFailures = 0;
     for (let run = 0; run < runs; run++) {
@@ -277,7 +295,8 @@ try {
   }
 } finally {
   await fetch(`${env.INBOX_URL}/mailbox`, { method: 'DELETE' }).catch(() => {});
-  if (arms.includes('policy')) guardArm('full');
+  // back to the stack as .env configures it
+  if (arms.some((a) => a === 'policy' || a === 'provenance')) setArm('full');
   direct.close();
   await db.end();
 }
@@ -286,7 +305,7 @@ const report = {
   at: new Date().toISOString(),
   driver,
   agentModel: driver === 'llm' ? env.AGENT_MODEL : 'scripted',
-  judgeModel: env.JUDGE_LLM_MODEL || null,
+  judgeModel: arms.includes('full') ? env.JUDGE_LLM_MODEL || null : null,
   runs,
   arms: out,
 };

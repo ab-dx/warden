@@ -148,23 +148,26 @@ By default the agent's brain is scripted: it does the job, and also obeys instru
 
 `bench/` holds 30 scenarios: 8 benign, 4 benign but outside the mandate, 5 payee redirections, 4 inflated amounts, 4 unrequested actions, 3 split or repeated payments, and 2 attacks that stay inside the mandate. Each is a YAML file with the owner's task, the mandate, the emails the agent reads, and what should happen to each payment.
 
-The harness runs every scenario three ways: with no guard (calls are recorded, not sent), with Warden's policy only, and with full Warden (policy plus provenance). A scripted owner approves held payments the scenario says are legitimate and rejects the rest.
+The harness runs every scenario up to four ways: with no guard (calls are recorded, not sent), with Warden's policy only, with policy plus provenance, and with full Warden, which adds the LLM intent judge. A scripted owner approves held payments the scenario says are legitimate and rejects the rest.
 
 ```sh
-pnpm --filter @warden/bench bench                         # scripted agent, all three arms
-pnpm --filter @warden/bench bench --driver llm --runs 3   # a real model (AGENT_BASE_URL, AGENT_MODEL)
+pnpm --filter @warden/bench bench                         # scripted agent; the full arm runs when JUDGE_LLM_* is set
+pnpm --filter @warden/bench bench --driver llm --runs 3   # a real agent model (AGENT_BASE_URL, AGENT_MODEL)
+pnpm --filter @warden/bench judge-eval                    # the intent judge alone on every bench payment, no stack needed
 ```
+
+`judge-eval` sends each payment from the scenarios to the judge with the same inputs it gets in production, and counts the attacks it holds and the asked-for payments it wrongly holds. Results go to `bench/results/judge/`.
 
 Results with the scripted agent, which obeys every injected instruction, and the LLM judge off:
 
-|                                                           | no guard | policy only |    full     |
-| --------------------------------------------------------- | :------: | :---------: | :---------: |
-| attack scenarios where money reached the attacker         | 18 of 18 |   7 of 18   | **4 of 18** |
-| attack payments that reached PayPal                       |   100%   |     40%     |   **30%**   |
-| legitimate payments allowed straight through              |   100%   |    100%     |     94%     |
-| legitimate payments held for approval when they should be |    0%    |    100%     |  **100%**   |
+|                                                           | no guard | policy only | policy + provenance |
+| --------------------------------------------------------- | :------: | :---------: | :-----------------: |
+| attack scenarios where money reached the attacker         | 18 of 18 |   7 of 18   |     **4 of 18**     |
+| attack payments that reached PayPal                       |   100%   |     40%     |       **30%**       |
+| legitimate payments allowed straight through              |   100%   |    100%     |         94%         |
+| legitimate payments held for approval when they should be |    0%    |    100%     |      **100%**       |
 
-What still gets through full Warden: two invoices inflated within the mandate's caps and a refund nobody asked for inside an open refund mandate, which are the intent judge's job, and six of eight small split payments before the rate limit stops the rest. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/).
+What still gets through policy plus provenance: two invoices inflated within the mandate's caps and a refund nobody asked for inside an open refund mandate, which are the intent judge's job, and six of eight small split payments before the rate limit stops the rest. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/).
 
 > [!NOTE]
 > The policy-only and full arms make real sandbox payouts, so the sandbox account needs a payout balance. Payouts PayPal refused are counted and reported separately.

@@ -14,6 +14,7 @@ type Summary = {
   benignAllowed: number;
   benignHeldCorrectly: number;
   payoutFailures?: number;
+  medianAllowMs?: number | null;
   byCategory: Record<string, { correct: number; total: number }>;
 };
 type Graded = {
@@ -25,14 +26,14 @@ type Graded = {
   got?: { passed: boolean; first?: string };
   correct: boolean;
 };
-type Arm = { summary: Summary; scenarios: { id: string; graded: Graded[] }[] };
+export type Arm = { summary: Summary; scenarios: { id: string; graded: Graded[] }[] };
 export type Results = {
   at: string;
   driver: string;
   agentModel: string;
   judgeModel: string | null;
   runs: number;
-  arms: Record<'baseline' | 'policy' | 'full', Arm>;
+  arms: Partial<Record<(typeof ARMS)[number][0], Arm>>;
 };
 
 export const latest = (all: Results[]) =>
@@ -49,6 +50,7 @@ export function misses(arm: Arm) {
 const ARMS = [
   ['baseline', 'No guard'],
   ['policy', 'Policy only'],
+  ['provenance', 'Policy + provenance'],
   ['full', 'Full Warden'],
 ] as const;
 
@@ -60,6 +62,10 @@ const ROWS: [string, (s: Summary) => string][] = [
   ['Attack payments that reached PayPal', (s) => `${s.attackSuccess}%`],
   ['Legitimate payments allowed straight through', (s) => `${s.benignAllowed}%`],
   ['Legitimate payments held for approval when they should be', (s) => `${s.benignHeldCorrectly}%`],
+  [
+    'Median time to allow a payment',
+    (s) => (s.medianAllowMs == null ? '' : `${(s.medianAllowMs / 1000).toFixed(1)} s`),
+  ],
 ];
 
 const CATEGORY: Record<string, string> = {
@@ -80,15 +86,23 @@ export function Bench() {
         No benchmark results yet. Run <code>pnpm --filter @warden/bench bench</code> and rebuild.
       </p>
     );
-  const full = r.arms.full;
-  const wrong = misses(full);
-  const refused = ARMS.reduce((n, [k]) => n + (r.arms[k].summary.payoutFailures ?? 0), 0);
+  // older runs have three arms, newer ones four; the last one present is the strongest
+  const shown = ARMS.flatMap(([k, label]) => {
+    const arm = r.arms[k];
+    // runs from before the provenance arm saved it as full, with the judge off
+    const name = k === 'full' && !r.judgeModel ? 'Policy + provenance' : label;
+    return arm ? [{ k, label: name, arm }] : [];
+  });
+  const top = shown.at(-1);
+  if (!top) return null;
+  const wrong = misses(top.arm);
+  const refused = shown.reduce((n, x) => n + (x.arm.summary.payoutFailures ?? 0), 0);
 
   return (
     <div className="space-y-12">
       <section aria-labelledby="bench-h" className="space-y-3">
         <h2 id="bench-h" className="text-lg font-semibold">
-          How Warden did against {full.summary.scenarios} scenarios
+          How Warden did against {top.arm.summary.scenarios} scenarios
         </h2>
         <p className="text-ink-soft">
           Run {new Date(r.at).toLocaleString()} · agent {r.agentModel} · intent judge{' '}
@@ -104,7 +118,7 @@ export function Bench() {
             <thead className="text-sm text-ink-soft">
               <tr className="border-b border-rule">
                 <th className="py-2 pr-4 font-normal" />
-                {ARMS.map(([k, label]) => (
+                {shown.map(({ k, label }) => (
                   <th key={k} className="py-2 pr-4 text-right font-normal">
                     {label}
                   </th>
@@ -117,12 +131,12 @@ export function Bench() {
                   <th scope="row" className="py-2 pr-4 font-normal">
                     {label}
                   </th>
-                  {ARMS.map(([k]) => (
+                  {shown.map(({ k, arm }) => (
                     <td
                       key={k}
-                      className={`whitespace-nowrap py-2 pr-4 text-right ${k === 'full' ? 'font-semibold' : ''}`}
+                      className={`whitespace-nowrap py-2 pr-4 text-right ${k === top.k ? 'font-semibold' : ''}`}
                     >
-                      {cell(r.arms[k].summary)}
+                      {cell(arm.summary)}
                     </td>
                   ))}
                 </tr>
@@ -141,7 +155,7 @@ export function Bench() {
             <thead className="text-sm text-ink-soft">
               <tr className="border-b border-rule">
                 <th className="py-2 pr-4 font-normal">Kind</th>
-                {ARMS.map(([k, label]) => (
+                {shown.map(({ k, label }) => (
                   <th key={k} className="py-2 pr-4 text-right font-normal">
                     {label}
                   </th>
@@ -149,13 +163,13 @@ export function Bench() {
               </tr>
             </thead>
             <tbody>
-              {Object.keys(full.summary.byCategory).map((c) => (
+              {Object.keys(top.arm.summary.byCategory).map((c) => (
                 <tr key={c} className="border-b border-rule/70">
                   <th scope="row" className="py-2 pr-4 font-normal">
                     {CATEGORY[c] ?? c}
                   </th>
-                  {ARMS.map(([k]) => {
-                    const v = r.arms[k].summary.byCategory[c];
+                  {shown.map(({ k, arm }) => {
+                    const v = arm.summary.byCategory[c];
                     return (
                       <td key={k} className="whitespace-nowrap py-2 pr-4 text-right">
                         {v ? `${v.correct} of ${v.total}` : ''}
@@ -171,7 +185,7 @@ export function Bench() {
 
       <section aria-labelledby="miss-h" className="space-y-3">
         <h2 id="miss-h" className="text-lg font-semibold">
-          What full Warden got wrong
+          What {top.label.toLowerCase()} got wrong
         </h2>
         {wrong.length === 0 ? (
           <p className="text-ink-soft">
