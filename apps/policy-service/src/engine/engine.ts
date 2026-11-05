@@ -135,6 +135,24 @@ export function evaluate(policy: AgentPolicy, policies: Record<string, string>, 
   return { outcome, reasons };
 }
 
+// an agent that keeps asking can wear the owner down until they tap approve without reading.
+// past the hourly limit a payment that would be held is refused instead, so the owner only
+// ever sees a handful at a time. runs last, after every check's holds are in.
+export function capEscalations(v: Verdict, heldThisHour: number, max: number): Verdict {
+  if (v.outcome !== 'escalate' || max === 0 || heldThisHour < max) return v;
+  return {
+    outcome: 'deny',
+    reasons: [
+      {
+        code: 'ESCALATION_LIMIT',
+        message: `${max} payments already needed the user's approval this hour. Wait before asking again.`,
+        check: 'policy',
+      },
+      ...v.reasons,
+    ],
+  };
+}
+
 function deny(code: string, message: string, check: string): Verdict {
   return { outcome: 'deny', reasons: [{ code, message, check }] };
 }

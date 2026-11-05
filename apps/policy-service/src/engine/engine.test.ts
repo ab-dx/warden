@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compile, evaluate, type Facts } from './engine.js';
+import { capEscalations, compile, evaluate, type Facts } from './engine.js';
 import { parsePolicyFile } from './policy-file.js';
 
 const file = parsePolicyFile(`
@@ -129,6 +129,28 @@ describe('policy engine', () => {
       reasons: [{ code: 'CHECK_FAILED' }],
     });
     expect(run({ amountMinor: 2n ** 60n }).reasons[0]?.code).toBe('AMOUNT_INVALID');
+  });
+});
+
+describe('capEscalations', () => {
+  const held = {
+    outcome: 'escalate' as const,
+    reasons: [{ code: 'COUNTERPARTY_NOT_IN_MANDATE', message: 'x', check: 'policy' }],
+  };
+
+  it('still asks the owner below the hourly limit, and refuses once it is reached', () => {
+    expect(capEscalations(held, 4, 5)).toEqual(held);
+    const r = capEscalations(held, 5, 5);
+    expect(r.outcome).toBe('deny');
+    expect(r.reasons.map((x) => x.code)).toEqual([
+      'ESCALATION_LIMIT',
+      'COUNTERPARTY_NOT_IN_MANDATE',
+    ]);
+  });
+
+  it('leaves allowed and denied calls alone, and does nothing when off', () => {
+    expect(capEscalations({ outcome: 'allow', reasons: [] }, 99, 5).outcome).toBe('allow');
+    expect(capEscalations(held, 99, 0)).toEqual(held);
   });
 });
 

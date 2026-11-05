@@ -199,7 +199,7 @@ escalate_when:
   - SPLIT_PAYMENT
 ```
 
-`SPLIT_PAYMENT` adds up the payments to one payee within `split_window_seconds` (an hour in the example) and holds the one that takes the sum past the mandate's per-payment cap, so an invoice can't be paid in slices to get under it. Everything else (deny-listed payees, the daily budget, payment rate, repeats) denies without asking.
+`SPLIT_PAYMENT` adds up the payments to one payee within `split_window_seconds` (an hour in the example) and holds the one that takes the sum past the mandate's per-payment cap, so an invoice can't be paid in slices to get under it. `max_escalations_per_hour` caps how many payments can wait for the owner in an hour; past it, a payment that would be held is refused with `ESCALATION_LIMIT`, so an agent can't wear the owner down with a flood of requests until one gets approved without a look. Everything else (deny-listed payees, the daily budget, payment rate, repeats) denies without asking.
 
 ## Development
 

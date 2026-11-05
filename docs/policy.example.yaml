@@ -9,6 +9,8 @@ agents:
     duplicate_window_seconds: 300
     # payments to one payee in this window are added up against the mandate's per-payment cap
     split_window_seconds: 3600
+    # held payments per hour before the rest are refused, so the owner isn't worn down
+    max_escalations_per_hour: 10
     deny_counterparties: ["*@temp-mail.org", "*@guerrillamail.com"]
     # these reasons go to the user for a decision; any other reason denies outright
     escalate_when:
@@ -27,6 +29,8 @@ agents:
     duplicate_window_seconds: 300
     # payments to one payee in this window are added up against the mandate's per-payment cap
     split_window_seconds: 3600
+    # held payments per hour before the rest are refused, so the owner isn't worn down
+    max_escalations_per_hour: 10
     deny_counterparties: ["*@temp-mail.org", "*@guerrillamail.com"]
     # these reasons go to the user for a decision; any other reason denies outright
     escalate_when:

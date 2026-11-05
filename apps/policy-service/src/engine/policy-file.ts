@@ -30,6 +30,8 @@ const agentPolicy = z
     duplicate_window_seconds: z.number().int().nonnegative(),
     // payments to one payee within this window are added up for the split check; 0 is off
     split_window_seconds: z.number().int().nonnegative().default(0),
+    // held payments per agent per hour before the rest are refused outright; 0 is off
+    max_escalations_per_hour: z.number().int().nonnegative().default(0),
     deny_counterparties: z.array(pattern).default([]),
     // reason codes that send a call to a human; every other reason denies
     escalate_when: z.array(z.string()).default([]),

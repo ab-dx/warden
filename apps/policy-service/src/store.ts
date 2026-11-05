@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { type Outcome, type Reason, tighten } from '@warden/core';
 import type pg from 'pg';
-import { compile, evaluate, type Facts, type Tier, type Verdict } from './engine/engine.js';
+import {
+  capEscalations,
+  compile,
+  evaluate,
+  type Facts,
+  type Tier,
+  type Verdict,
+} from './engine/engine.js';
 import type { PolicyFile } from './engine/policy-file.js';
 
 export const schemaSql = `
@@ -204,10 +211,22 @@ export class PolicyStore {
         duplicate: (dup.rows[0]?.n ?? 0) > 0,
         payeeRecentMinor: BigInt(toPayee?.rows[0]?.used ?? 0),
       };
-      const verdict = tighten(evaluate(policy, policies, facts), {
-        outcome: intent.escalations?.length ? 'escalate' : 'allow',
-        reasons: intent.escalations ?? [],
-      });
+      const held =
+        policy.max_escalations_per_hour > 0
+          ? await tx.query<{ n: number }>(
+              `select count(*)::int as n from evaluations
+               where agent_id = $1 and outcome = 'escalate' and created_at > now() - interval '1 hour'`,
+              [intent.agentId],
+            )
+          : undefined;
+      const verdict = capEscalations(
+        tighten(evaluate(policy, policies, facts), {
+          outcome: intent.escalations?.length ? 'escalate' : 'allow',
+          reasons: intent.escalations ?? [],
+        }),
+        held?.rows[0]?.n ?? 0,
+        policy.max_escalations_per_hour,
+      );
 
       // hold the amount while a human decides too, so parallel calls can't spend it meanwhile.
       // only a call the mandate allowed by itself draws on the mandate; anything escalated is
