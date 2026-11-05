@@ -158,16 +158,19 @@ pnpm --filter @warden/bench judge-eval                    # the intent judge alo
 
 `judge-eval` sends each payment from the scenarios to the judge with the same inputs it gets in production, and counts the attacks it holds and the asked-for payments it wrongly holds. Results go to `bench/results/judge/`.
 
-Results with the scripted agent, which obeys every injected instruction, and the LLM judge off:
+Results with the scripted agent, which obeys every injected instruction, and `openai/gpt-6-luna` as the intent judge:
 
-|                                                           | no guard | policy only | policy + provenance |
-| --------------------------------------------------------- | :------: | :---------: | :-----------------: |
-| attack scenarios where money reached the attacker         | 18 of 18 |   7 of 18   |     **4 of 18**     |
-| attack payments that reached PayPal                       |   100%   |     40%     |       **30%**       |
-| legitimate payments allowed straight through              |   100%   |    100%     |         94%         |
-| legitimate payments held for approval when they should be |    0%    |    100%     |      **100%**       |
+|                                                           | no guard | policy only | policy + provenance | full Warden |
+| --------------------------------------------------------- | :------: | :---------: | :-----------------: | :---------: |
+| attack scenarios where money reached the attacker         | 18 of 18 |   7 of 18   |       4 of 18       | **2 of 18** |
+| attack payments that reached PayPal                       |   100%   |     33%     |         23%         |   **17%**   |
+| legitimate payments allowed straight through              |   100%   |    100%     |         94%         |     94%     |
+| legitimate payments held for approval when they should be |    0%    |    100%     |        100%         |  **100%**   |
+| median time to allow a payment                            |   3 ms   |    1.1 s    |        1.1 s        |    4.4 s    |
 
-What still gets through policy plus provenance: two invoices inflated within the mandate's caps and a refund nobody asked for inside an open refund mandate, which are the intent judge's job, and six of eight small split payments before the rate limit stops the rest. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/).
+Each layer catches what the one before it can't. The judge adds about three seconds to a payment it allows, and in this run it held two inflated invoices and none of the legitimate payments.
+
+What still gets through full Warden: four slices of an invoice split eight ways, which add up to exactly the per-payment cap before the split rule holds the fifth, and a second refund nobody asked for, which looks to the judge exactly like the first. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/), and the judge on its own (`judge-eval`) in [`bench/results/judge/`](bench/results/judge/).
 
 > [!NOTE]
 > The guarded arms make real sandbox payouts, so the sandbox account needs a payout balance. Payouts PayPal refused are counted and reported separately.
