@@ -143,6 +143,14 @@ pnpm --filter @warden/ops-agent agent
 
 The agent reaches the inbox through Warden too (`UNTRUSTED_MCP_URLS`). Warden passes the emails through unchanged, but first records the payees, amounts and PayPal ids in them as untrusted content seen in that session. If that record can't be written, the agent doesn't get the content. A proxied server can't offer a tool with a PayPal tool's name.
 
+To see what the agent does with no firewall at all, run it unguarded. It reads the same inbox and pays straight through PayPal's sandbox, attacker included:
+
+```sh
+docker compose -f compose.yaml -f deploy/compose/unguarded.yaml --profile app up -d paypal-connector
+pnpm --filter @warden/ops-agent agent:unguarded
+pnpm app:up                   # closes the connector to everything but Warden again
+```
+
 By default the agent's brain is scripted: it does the job, and also obeys instructions it finds in emails, which is what a prompt-injected model does. To use a real model, set `AGENT_DRIVER=llm` with any OpenAI-compatible endpoint (`AGENT_BASE_URL`, `AGENT_MODEL`, `AGENT_API_KEY`). `docker compose --profile llm up -d ollama` runs a small local one.
 
 ## Benchmark

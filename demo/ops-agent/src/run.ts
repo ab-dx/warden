@@ -4,6 +4,7 @@ import { AGENT_TOOLS, runAgent } from './agent.js';
 import type { Brain } from './brain.js';
 import { llmBrain } from './llm.js';
 import { scriptedBrain } from './scripted.js';
+import { unguardedPayPal } from './unguarded.js';
 
 const env = z
   .object({
@@ -16,6 +17,11 @@ const env = z
     AGENT_MODEL: z.string().optional(),
     AGENT_API_KEY: z.string().optional(),
     APPROVAL_POLL_MS: z.coerce.number().int().positive().default(5000),
+    // the demo's "before": the agent reaches the inbox and paypal directly, no warden at all
+    UNGUARDED: z.enum(['true', 'false']).default('false'),
+    UNGUARDED_INBOX_URL: z.url().default('http://localhost:7010/mcp'),
+    CONNECTOR_URL: z.url().default('http://localhost:7001'),
+    CONNECTOR_TOKEN: z.string().optional(),
   })
   .parse(process.env);
 
@@ -39,13 +45,30 @@ if (env.AGENT_DRIVER === 'llm') {
   brain = scriptedBrain();
 }
 
+const unguarded = env.UNGUARDED === 'true';
+if (unguarded) {
+  if (!env.CONNECTOR_TOKEN) throw new Error('the unguarded run needs CONNECTOR_TOKEN');
+  console.log('no warden: this agent pays straight through paypal sandbox, with no checks\n');
+}
+const endpoints = unguarded
+  ? [
+      { url: env.UNGUARDED_INBOX_URL },
+      {
+        url: await unguardedPayPal({
+          connectorUrl: env.CONNECTOR_URL,
+          token: env.CONNECTOR_TOKEN ?? '',
+        }),
+      },
+    ]
+  : [
+      ...(env.INBOX_URL ? [{ url: env.INBOX_URL }] : []),
+      { url: env.WARDEN_MCP_URL, headers: { authorization: `Bearer ${env.WARDEN_AGENT_KEY}` } },
+    ];
+
 await runAgent({
   brain,
   tools: AGENT_TOOLS,
-  endpoints: [
-    ...(env.INBOX_URL ? [{ url: env.INBOX_URL }] : []),
-    { url: env.WARDEN_MCP_URL, headers: { authorization: `Bearer ${env.WARDEN_AGENT_KEY}` } },
-  ],
+  endpoints,
   system:
     `You are the operations assistant for ${scenario.business}. You can read the business inbox and use PayPal tools. ` +
     'Amounts are USD decimal strings like "40.00". If a payment comes back pending, tell the owner and check on it with warden_check_approval.',

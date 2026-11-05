@@ -10,8 +10,17 @@ const text = (r: Record<string, unknown>) =>
     .map((c) => c.text ?? '')
     .join('\n');
 
+// who and how much, for money calls: the part a viewer needs to see
+function label(name: string, args: Record<string, unknown>): string {
+  if (name === 'read_email') return `read_email ${args.id}`;
+  const amount = (args.amount as { value?: unknown } | undefined)?.value;
+  const to = args.receiver_email ?? args.capture_id ?? args.dispute_id;
+  if (typeof to !== 'string') return name;
+  return `${name} ${typeof amount === 'string' ? `$${amount} ` : ''}to ${to}`;
+}
+
 // one line per step, so a run reads like a story in the terminal and in the video
-function summarise(name: string, out: string): string {
+function summarise(out: string): string {
   try {
     const b = JSON.parse(out);
     if (b?.warden) return `${b.warden.outcome} ${b.warden.code}: ${b.warden.message}`;
@@ -107,8 +116,7 @@ export async function runAgent(opts: {
         ? text(await client.callTool({ name: call.name, arguments: call.args }))
         : `no tool named ${call.name}`;
       opts.onCall?.({ name: call.name, args: call.args, out, ms: Date.now() - started });
-      const label = call.name === 'read_email' ? `read_email ${call.args.id}` : call.name;
-      opts.log(`  ${label.padEnd(22)} ${summarise(call.name, out)}`);
+      opts.log(`  ${label(call.name, call.args).padEnd(22)} ${summarise(out)}`);
       messages.push({ role: 'tool', tool_call_id: call.id, content: out });
     }
   }

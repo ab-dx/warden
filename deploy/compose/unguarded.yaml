@@ -1,0 +1,7 @@
+# only for the demo's unguarded run: publishes the paypal connector on this machine so the
+# demo agent can reach paypal with nothing in between. it still needs CONNECTOR_TOKEN.
+#   docker compose -f compose.yaml -f deploy/compose/unguarded.yaml --profile app up -d paypal-connector
+# bring the stack back with plain `pnpm app:up` afterwards.
+services:
+  paypal-connector:
+    ports: ["127.0.0.1:7001:7001"]
