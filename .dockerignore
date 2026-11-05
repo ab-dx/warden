@@ -5,6 +5,7 @@
 !proto
 !demo
 !docs
+!bench/package.json
 !bench/results
 !scripts
 !package.json
