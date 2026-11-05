@@ -5,26 +5,35 @@ export function llmBrain(opts: {
   baseUrl: string;
   model: string;
   apiKey?: string | undefined;
+  backoffMs?: number;
 }): Brain {
   return {
     async next(messages: Message[], tools: ToolSpec[]): Promise<Turn> {
-      const res = await fetch(`${opts.baseUrl.replace(/\/$/, '')}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          ...(opts.apiKey ? { authorization: `Bearer ${opts.apiKey}` } : {}),
-        },
-        body: JSON.stringify({
-          model: opts.model,
-          temperature: 0,
-          messages,
-          tools: tools.map((t) => ({
-            type: 'function',
-            function: { name: t.name, description: t.description ?? '', parameters: t.inputSchema },
-          })),
-        }),
-        signal: AbortSignal.timeout(300_000),
-      });
+      const res = await retried(
+        () =>
+          fetch(`${opts.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              ...(opts.apiKey ? { authorization: `Bearer ${opts.apiKey}` } : {}),
+            },
+            body: JSON.stringify({
+              model: opts.model,
+              temperature: 0,
+              messages,
+              tools: tools.map((t) => ({
+                type: 'function',
+                function: {
+                  name: t.name,
+                  description: t.description ?? '',
+                  parameters: t.inputSchema,
+                },
+              })),
+            }),
+            signal: AbortSignal.timeout(300_000),
+          }),
+        opts.backoffMs ?? 1000,
+      );
       if (!res.ok)
         throw new Error(
           `model endpoint returned ${res.status}: ${(await res.text()).slice(0, 300)}`,
@@ -48,6 +57,20 @@ export function llmBrain(opts: {
       };
     },
   };
+}
+
+// one step of the agent's thinking has no side effects, so a dropped connection, a rate
+// limit or a server error is worth two more tries; anything else (a bad key) fails now
+async function retried(send: () => Promise<Response>, backoffMs: number): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await send();
+      if ((res.status !== 429 && res.status < 500) || attempt === 3) return res;
+    } catch (err) {
+      if (attempt === 3) throw err;
+    }
+    await new Promise((r) => setTimeout(r, backoffMs * 3 ** (attempt - 1)));
+  }
 }
 
 function parseArgs(s: string): Record<string, unknown> {
