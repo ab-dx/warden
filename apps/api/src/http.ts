@@ -21,6 +21,7 @@ import {
 } from '@nestjs/common';
 import type { Client as TemporalClient } from '@temporalio/client';
 import {
+  type CallSummary,
   CallSummarySchema,
   GetCallResponseSchema,
   MandateSchema,
@@ -39,6 +40,8 @@ export type Deps = {
   policy: RpcClient<typeof PolicyService>;
   temporal: TemporalClient;
   secureCookie: boolean;
+  // a note for the owner on each held payment; advice only
+  brief: (call: CallSummary) => Promise<string>;
 };
 
 const COOKIE = 'warden_session';
@@ -133,11 +136,14 @@ export class ApiController {
   @Get('approvals')
   async approvals() {
     const rows = await pendingApprovals(this.deps.ledger, this.deps.temporal);
-    return rows.map((r) => ({
-      call: toJson(CallSummarySchema, r.call),
-      expiresAt: r.expiresAt ?? null,
-      requestedAt: r.requestedAt ? timestampDate(r.requestedAt).toISOString() : null,
-    }));
+    return Promise.all(
+      rows.map(async (r) => ({
+        call: toJson(CallSummarySchema, r.call),
+        brief: await this.deps.brief(r.call),
+        expiresAt: r.expiresAt ?? null,
+        requestedAt: r.requestedAt ? timestampDate(r.requestedAt).toISOString() : null,
+      })),
+    );
   }
 
   @Post('approvals/:callId')

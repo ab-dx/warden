@@ -57,6 +57,11 @@ export function Slip({ a }: { a: Approval }) {
             </li>
           ))}
         </ul>
+        {a.brief && (
+          <p className="mt-3 text-[15px] leading-relaxed">
+            <span className="font-medium">Warden's read:</span> {a.brief}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-4 border-t border-rule px-6 py-4">

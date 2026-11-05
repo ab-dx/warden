@@ -31,6 +31,7 @@ beforeAll(async () => {
     policy: {} as never,
     temporal: temporal as never,
     secureCookie: false,
+    brief: async () => 'a note',
   };
   @Module({
     controllers: [SessionController, ApiController],

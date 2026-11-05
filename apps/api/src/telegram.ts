@@ -19,7 +19,7 @@ export function botApi(token: string, timeoutMs = 35_000): Bot {
   };
 }
 
-type Pending = { call: CallSummary; expiresAt?: string | undefined };
+type Pending = { call: CallSummary; expiresAt?: string | undefined; brief?: string };
 type Update = {
   update_id: number;
   callback_query?: {
@@ -37,7 +37,8 @@ export function heldMessage(p: Pending) {
   const until = p.expiresAt
     ? `\nBlocked if nobody answers by ${p.expiresAt.slice(11, 16)} UTC.`
     : '';
-  return `Warden is holding a payment for you.\n\n${c.tool}: ${amount} to ${c.counterparty ?? 'an unknown payee'}\n\nWhy:\n${why}${until}`;
+  const note = p.brief ? `\n\nWarden's read: ${p.brief}` : '';
+  return `Warden is holding a payment for you.\n\n${c.tool}: ${amount} to ${c.counterparty ?? 'an unknown payee'}\n\nWhy:\n${why}${note}${until}`;
 }
 
 // asks the owner about each held payment in one chat and turns their tap into the same

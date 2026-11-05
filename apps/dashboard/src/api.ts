@@ -15,7 +15,13 @@ export type Call = {
   receivedAt?: string;
   updatedAt?: string;
 };
-export type Approval = { call: Call; expiresAt: string | null; requestedAt: string | null };
+export type Approval = {
+  call: Call;
+  // warden's note for the owner, built from facts only; advice, not a verdict
+  brief?: string;
+  expiresAt: string | null;
+  requestedAt: string | null;
+};
 export type Entry = {
   seq: string;
   type: string;

@@ -9,6 +9,7 @@ import { LedgerService, PolicyService } from '@warden/contracts';
 import { internalClient } from '@warden/service-kit';
 import { z } from 'zod';
 import { decide, pendingApprovals } from './approvals.js';
+import { briefs, chat } from './brief.js';
 import { ApiController, DEPS, type Deps, SessionController } from './http.js';
 import { sessions } from './session.js';
 import { botApi, startTelegram, telegramApprovals } from './telegram.js';
@@ -37,6 +38,10 @@ const env = z
       (v) => (v === '' ? undefined : v),
       z.coerce.number().int().optional(),
     ),
+    // the brief on held payments reuses the judge's model; unset gives a plain sentence
+    JUDGE_LLM_BASE_URL: z.string().optional(),
+    JUDGE_LLM_MODEL: z.string().optional(),
+    JUDGE_LLM_API_KEY: z.string().optional(),
     DASHBOARD_DIR: z
       .string()
       .default(fileURLToPath(new URL('../../dashboard/dist', import.meta.url))),
@@ -48,6 +53,7 @@ if (!env.success)
   );
 const c = env.data;
 
+const policy = internalClient(PolicyService, c.POLICY_URL, c.POLICY_TOKEN);
 const deps: Deps = {
   sessions: sessions({
     secret: c.SESSION_SECRET,
@@ -56,12 +62,23 @@ const deps: Deps = {
     ttlMs: c.SESSION_HOURS * 3600_000,
   }),
   ledger: internalClient(LedgerService, c.LEDGER_URL, c.LEDGER_TOKEN),
-  policy: internalClient(PolicyService, c.POLICY_URL, c.POLICY_TOKEN),
+  policy,
   temporal: new TemporalClient({
     connection: await Connection.connect({ address: c.TEMPORAL_ADDRESS }),
     namespace: c.TEMPORAL_NAMESPACE,
   }),
   secureCookie: c.COOKIE_SECURE === 'true',
+  brief: briefs({
+    mandates: async () => (await policy.listMandates({ agentId: '' })).mandates,
+    complete:
+      c.JUDGE_LLM_BASE_URL && c.JUDGE_LLM_MODEL
+        ? chat({
+            baseUrl: c.JUDGE_LLM_BASE_URL,
+            model: c.JUDGE_LLM_MODEL,
+            apiKey: c.JUDGE_LLM_API_KEY,
+          })
+        : undefined,
+  }),
 };
 
 @Module({
@@ -101,7 +118,13 @@ if (c.TELEGRAM_BOT_TOKEN && c.TELEGRAM_CHAT_ID !== undefined) {
     telegramApprovals({
       bot: botApi(c.TELEGRAM_BOT_TOKEN),
       chatId: c.TELEGRAM_CHAT_ID,
-      pending: () => pendingApprovals(ledger, temporal),
+      pending: async () =>
+        Promise.all(
+          (await pendingApprovals(ledger, temporal)).map(async (p) => ({
+            ...p,
+            brief: await deps.brief(p.call),
+          })),
+        ),
       decide: (callId, approved, by) => decide(temporal, callId, approved, by),
     }),
     (msg) => Logger.warn(msg, 'telegram'),
