@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { type Approval, api } from './api.js';
-import { ago, forUser, left, money, toolName } from './format.js';
+import { ago, checkName, forUser, left, money, toolName } from './format.js';
 
 function useNow(ms = 1000) {
   const [now, setNow] = useState(Date.now());
@@ -52,7 +52,9 @@ export function Slip({ a }: { a: Approval }) {
         <p className="text-sm font-medium text-held">Held because</p>
         <ul className="mt-1 space-y-1 text-[15px] leading-relaxed">
           {(call.reasons ?? []).map((r) => (
-            <li key={r.code}>{forUser(r.message)}</li>
+            <li key={r.code}>
+              <span className="font-medium">{checkName(r.check)}:</span> {forUser(r.message)}
+            </li>
           ))}
         </ul>
       </div>

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { api, type Call } from './api.js';
-import { ago, forUser, money, STATUS, toolName } from './format.js';
+import { ago, checkName, forUser, money, STATUS, toolName } from './format.js';
 import { Slip } from './slip.js';
 
 const POLL = { refetchInterval: 2000 };
@@ -99,14 +99,20 @@ const STEP: Record<string, string> = {
   reservationReleased: 'Budget hold released',
 };
 
+// "dashboard:owner" or "telegram:12345" as the owner would say it
+function via(by: string) {
+  const [where, who] = by.split(':');
+  if (where === 'dashboard') return `by ${who} on the dashboard`;
+  if (where === 'telegram') return 'from Telegram';
+  return `by ${by}`;
+}
+
 function stepDetail(type: string, dataJson: string): string {
   const d = JSON.parse(dataJson) as Record<string, Record<string, unknown>>;
   const v = d[type] ?? {};
   switch (type) {
     case 'approvalResolved':
-      return v.approved
-        ? `Approved by ${String(v.resolvedBy).replace('dashboard:', '')}`
-        : `Not approved (${String(v.resolvedBy)})`;
+      return `${v.approved ? 'Approved' : 'Rejected'} ${via(String(v.resolvedBy ?? ''))}`;
     case 'decisionMade':
       return `${v.outcome === 'OUTCOME_ALLOW' ? 'Allowed' : 'Blocked'}, decided by ${String(
         v.decidedBy ?? 'policy',
@@ -118,7 +124,7 @@ function stepDetail(type: string, dataJson: string): string {
         ? `PayPal accepted it (${String(v.upstreamRef ?? '')})`
         : `PayPal did not complete it (${String(v.errorCode ?? '')})`;
     case 'reservationReleased':
-      return String(v.reason ?? '');
+      return v.reason ? forUser(String(v.reason)) : '';
     default:
       return '';
   }
@@ -146,9 +152,16 @@ export function Evidence({ id, back }: { id: string; back: () => void }) {
               <StatusWord c={c} />
             </p>
             {(c.reasons ?? []).length > 0 && (
-              <ul className="mt-3 space-y-1 border-l-2 border-held pl-4">
+              <p className="mt-3 text-sm font-medium text-held">
+                {c.status === 'denied' ? 'Blocked because' : 'Held because'}
+              </p>
+            )}
+            {(c.reasons ?? []).length > 0 && (
+              <ul className="mt-1 space-y-1 border-l-2 border-held pl-4">
                 {c.reasons?.map((r) => (
-                  <li key={r.code}>{forUser(r.message)}</li>
+                  <li key={r.code}>
+                    <span className="font-medium">{checkName(r.check)}:</span> {forUser(r.message)}
+                  </li>
                 ))}
               </ul>
             )}

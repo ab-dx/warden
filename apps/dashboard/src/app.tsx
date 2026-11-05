@@ -56,7 +56,7 @@ export function App() {
   return (
     <div className="mx-auto max-w-[960px] px-4 pb-24 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pt-8 pb-3">
-        <div className="flex items-end gap-5 sm:gap-8">
+        <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
           <h1 className="text-2xl font-bold tracking-tight">Warden</h1>
           <nav className="flex gap-4 sm:gap-6">
             {tab('#/', 'Payments', page === 'home' || page === 'call', waiting)}

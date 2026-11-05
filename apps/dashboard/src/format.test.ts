@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { duration, forUser, left, money } from './format.js';
+import { checkName, duration, forUser, left, money } from './format.js';
 
 describe('money', () => {
   it('groups digits without touching the decimals', () => {
@@ -18,6 +18,24 @@ describe('forUser', () => {
     expect(forUser('120.00 USD is above the limit of 100.00 USD.')).toBe(
       '120.00 USD is above the limit of 100.00 USD.',
     );
+  });
+  it('finishes lowercase fragments as sentences, but leaves an email alone', () => {
+    expect(forUser('the user rejected this payment')).toBe('The user rejected this payment.');
+    expect(forUser('the judge was unsure: amount differs')).toBe(
+      'The judge was unsure: amount differs.',
+    );
+    expect(forUser('accounts@pixel.example appears only in content the agent read')).toBe(
+      'accounts@pixel.example appears only in content the agent read.',
+    );
+  });
+});
+
+describe('checkName', () => {
+  it('names the layer that raised a reason', () => {
+    expect(checkName('provenance')).toBe('Provenance');
+    expect(checkName('judge')).toBe('Intent judge');
+    expect(checkName('approval')).toBe('Approval');
+    expect(checkName('something-new')).toBe('Something-new');
   });
 });
 

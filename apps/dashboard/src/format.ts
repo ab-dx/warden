@@ -34,8 +34,27 @@ export const STATUS: Record<string, { label: string; tone: string }> = {
   unknown: { label: 'Unconfirmed', tone: 'text-held' },
 };
 
-// policy reasons are written for the agent ("ask the user..."); the first sentence is the part for a person
-export const forUser = (message: string) => message.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? message;
+// policy reasons are written for the agent ("ask the user..."); the first sentence is the part for a person.
+// some checks write lowercase fragments, so finish them as sentences, but never capitalise an email
+export function forUser(message: string) {
+  const first = (message.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? message).trim();
+  const cased = /^[a-z][^\s@]*(\s|$)/.test(first)
+    ? first[0]?.toUpperCase() + first.slice(1)
+    : first;
+  return /[.!?]$/.test(cased) ? cased : `${cased}.`;
+}
+
+// which layer of warden raised a reason, in the owner's words
+const CHECK: Record<string, string> = {
+  policy: 'Policy',
+  mandate: 'Mandate',
+  provenance: 'Provenance',
+  judge: 'Intent judge',
+  approval: 'Approval',
+  gateway: 'Gateway',
+};
+export const checkName = (check: string) =>
+  CHECK[check] ?? check.replace(/^./, (c) => c.toUpperCase());
 
 export function duration(iso: string | undefined | null, now = Date.now()): string {
   const m = Math.max(0, Math.round((Date.parse(iso ?? '') - now) / 60_000));
