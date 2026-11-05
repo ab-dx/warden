@@ -168,6 +168,16 @@ describe('gateway mcp server', () => {
     expect(r.body.warden).toMatchObject({ code: 'IN_PROGRESS', approvalUrl: null });
   });
 
+  it('answers unknown for a missing or malformed call id without asking temporal', async () => {
+    const s = setup();
+    (s.deps.guard as unknown as { check: unknown }).check = async () => {
+      throw new Error('should not be asked');
+    };
+    const { call } = await connect(s.deps);
+    for (const args of [{}, { callId: '' }, { callId: '../c_1' }])
+      expect((await call('warden_check_approval', args)).body.warden.code).toBe('UNKNOWN_CALL');
+  });
+
   it('only shows a pending call to the agent that made it', async () => {
     const mine = await connect(setup().deps, 'ops-agent');
     expect((await mine.call('warden_check_approval', { callId: 'c_1' })).body.warden.code).toBe(

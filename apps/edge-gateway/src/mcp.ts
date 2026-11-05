@@ -156,6 +156,9 @@ export function gatewayServer(
 
     if (name === CHECK_TOOL.name) {
       const callId = typeof args.callId === 'string' ? args.callId : '';
+      // temporal throws on an empty or odd id instead of saying it doesn't exist
+      if (!/^c_[\w-]{1,64}$/.test(callId))
+        return render(callId, { missing: true }, deps.approvalUrl(callId));
       return render(callId, await deps.guard.check(callId, agentId), deps.approvalUrl(callId));
     }
 
