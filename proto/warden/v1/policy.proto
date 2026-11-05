@@ -13,6 +13,8 @@ service PolicyService {
   rpc CreateMandate(CreateMandateRequest) returns (CreateMandateResponse);
   rpc RevokeMandate(RevokeMandateRequest) returns (RevokeMandateResponse);
   rpc ListMandates(ListMandatesRequest) returns (ListMandatesResponse);
+  // each agent's daily budget and what is held or spent against it in the last 24 hours
+  rpc ListBudgets(ListBudgetsRequest) returns (ListBudgetsResponse);
 }
 
 message EvaluateAndReserveRequest {
@@ -68,4 +70,16 @@ message ListMandatesRequest {
 
 message ListMandatesResponse {
   repeated Mandate mandates = 1;
+}
+
+message ListBudgetsRequest {}
+
+message Budget {
+  string agent_id = 1;
+  Money daily_budget = 2;
+  Money used = 3;
+}
+
+message ListBudgetsResponse {
+  repeated Budget budgets = 1;
 }

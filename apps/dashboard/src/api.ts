@@ -83,11 +83,23 @@ export type Draft = {
   namedPayees: boolean;
 };
 
+export type Stats = {
+  budgets: { agentId: string; dailyBudget: Money; used: Money }[];
+  today: {
+    completed: number;
+    blocked: number;
+    waiting: number;
+    paypalRefused: number;
+    moved: Money[];
+  };
+};
+
 export const api = {
   me: () => call<{ user: string }>('GET', '/api/session'),
   login: (password: string) => call<void>('POST', '/api/session', { password }),
   logout: () => call<void>('DELETE', '/api/session'),
   approvals: () => call<Approval[]>('GET', '/api/approvals'),
+  stats: () => call<Stats>('GET', '/api/stats'),
   draftMandate: (text: string) => call<Draft>('POST', '/api/mandates/draft', { text }),
   decide: (callId: string, approved: boolean) =>
     call<void>('POST', `/api/approvals/${callId}`, { approved }),

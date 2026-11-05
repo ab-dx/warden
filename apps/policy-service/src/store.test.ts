@@ -194,6 +194,20 @@ describe('PolicyStore', () => {
     );
   });
 
+  it("reports each agent's daily budget and what is held or spent against it", async () => {
+    await mandate({ maxPerCallMinor: 15000n, maxTotalMinor: 100000n });
+    const held = await store.evaluateAndReserve(payout({ amountMinor: 4000n }));
+    await store.evaluateAndReserve(payout({ amountMinor: 1500n }));
+    await store.release(held.reservationId ?? '', 'paypal refused it');
+    const ops = (await store.budgets()).find((b) => b.agentId === 'ops-agent');
+    expect(ops).toEqual({
+      agentId: 'ops-agent',
+      currency: 'USD',
+      limitMinor: 30000n,
+      usedMinor: 1500n,
+    });
+  });
+
   it('denies agents with no policy', async () => {
     const r = await store.evaluateAndReserve(payout({ agentId: 'stranger' }));
     expect(r).toMatchObject({ outcome: 'deny', reasons: [{ code: 'UNKNOWN_AGENT' }] });

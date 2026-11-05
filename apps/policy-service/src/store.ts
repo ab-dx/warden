@@ -362,6 +362,25 @@ export class PolicyStore {
     return (await this.mandates({ id }))[0];
   }
 
+  // what each agent has held or spent in the last 24 hours, by the same sum the daily rule uses
+  async budgets() {
+    const out = [];
+    for (const [agentId, p] of Object.entries(this.policyFile.agents)) {
+      const { rows } = await this.pool.query<{ used: string }>(
+        `select ${USED} as used from reservations
+         where agent_id = $1 and currency = $2 and ${LIVE} and created_at > now() - interval '24 hours'`,
+        [agentId, p.daily_budget.currency],
+      );
+      out.push({
+        agentId,
+        currency: p.daily_budget.currency,
+        limitMinor: p.daily_budget.minor,
+        usedMinor: BigInt(rows[0]?.used ?? 0),
+      });
+    }
+    return out;
+  }
+
   async mandates(where: { id?: string; agentId?: string }): Promise<MandateRow[]> {
     const { rows } = await this.pool.query<MandateRow>(
       `select m.*,

@@ -34,6 +34,7 @@ import { decide, type Ledger, pendingApprovals } from './approvals.js';
 import type { Complete } from './brief.js';
 import { draftMandate } from './draft.js';
 import type { Sessions } from './session.js';
+import { today } from './stats.js';
 
 export const DEPS = Symbol('deps');
 export type Deps = {
@@ -137,6 +138,33 @@ const newMandate = z.object({
 @UseGuards(SignedIn)
 export class ApiController {
   constructor(@Inject(DEPS) private readonly deps: Deps) {}
+
+  // daily budget per agent and the last 24 hours at a glance, for the top of the dashboard
+  @Get('stats')
+  async stats() {
+    const [{ budgets }, { calls }] = await Promise.all([
+      rpc(this.deps.policy.listBudgets({})),
+      rpc(
+        this.deps.ledger.listCalls({
+          agentId: '',
+          limit: 1000,
+          statuses: ['executed', 'denied', 'pending_approval', 'failed'],
+        }),
+      ),
+    ]);
+    return {
+      // plain money objects, not protobuf messages, which carry a $typeName field
+      budgets: budgets.map((b) => ({
+        agentId: b.agentId,
+        dailyBudget: {
+          value: b.dailyBudget?.value ?? '0.00',
+          currency: b.dailyBudget?.currency ?? '',
+        },
+        used: { value: b.used?.value ?? '0.00', currency: b.used?.currency ?? '' },
+      })),
+      today: today(calls, Date.now()),
+    };
+  }
 
   @Get('approvals')
   async approvals() {

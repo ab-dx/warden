@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import { Bench } from './bench.js';
 import { Mandates } from './mandates.js';
-import { Activity, Approvals, Evidence, Login } from './screens.js';
+import { Activity, Approvals, Evidence, Login, Today } from './screens.js';
 
 function useHash() {
   const [hash, setHash] = useState(location.hash);
@@ -81,6 +81,7 @@ export function App() {
         {page === 'bench' && <Bench />}
         {page === 'home' && (
           <>
+            <Today />
             <Approvals />
             <Activity open={(id) => (location.hash = `#/calls/${id}`)} />
           </>

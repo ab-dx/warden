@@ -6,6 +6,62 @@ import { Slip } from './slip.js';
 
 const POLL = { refetchInterval: 2000 };
 
+// cents from a two-decimal money string, for a share that never touches floats until the end
+const cents = (v: string) => BigInt(v.replace('.', ''));
+
+export function Today() {
+  const q = useQuery({ queryKey: ['stats'], queryFn: api.stats, refetchInterval: 5000 });
+  if (!q.data) return null;
+  const t = q.data.today;
+  const moved = t.moved.length ? t.moved.map(money).join(' + ') : '$0.00';
+  // the demo agent always, others once they have spent something today
+  const budgets = q.data.budgets.filter(
+    (b) => b.agentId === 'ops-agent' || cents(b.used.value) > 0n,
+  );
+  const figure = (label: string, value: string | number, tone = '') => (
+    <div>
+      <p className={`text-2xl font-semibold tracking-tight ${tone}`}>{value}</p>
+      <p className="text-sm text-ink-soft">{label}</p>
+    </div>
+  );
+  return (
+    <section aria-label="The last 24 hours" className="space-y-4">
+      <div className="flex flex-wrap gap-x-10 gap-y-4">
+        {figure('moved in the last 24 hours', moved)}
+        {figure('payments completed', t.completed, 'text-paid')}
+        {figure('blocked', t.blocked, t.blocked ? 'text-refused' : '')}
+        {figure('waiting for you', t.waiting, t.waiting ? 'text-held' : '')}
+        {t.paypalRefused > 0 && figure('refused by PayPal', t.paypalRefused, 'text-refused')}
+      </div>
+      {budgets.map((b) => {
+        const limit = cents(b.dailyBudget.value);
+        const share = limit === 0n ? 0 : Number((cents(b.used.value) * 100n) / limit);
+        return (
+          <div key={b.agentId} className="max-w-md">
+            <p className="text-sm">
+              <span className="font-medium">{b.agentId}</span>: {money(b.used)} of{' '}
+              {money(b.dailyBudget)} daily budget
+            </p>
+            <div
+              className="mt-1 h-2 rounded-full bg-rule"
+              role="progressbar"
+              aria-label={`${b.agentId} daily budget used`}
+              aria-valuenow={Math.min(share, 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className={`h-2 rounded-full ${share >= 90 ? 'bg-refused' : 'bg-ink'}`}
+                style={{ width: `${Math.min(share, 100)}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 export function Approvals() {
   const q = useQuery({ queryKey: ['approvals'], queryFn: api.approvals, ...POLL });
   const count = q.data?.length ?? 0;

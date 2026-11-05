@@ -199,5 +199,16 @@ export function policyService(
       const rows = await store.mandates(agentId ? { agentId } : {});
       return { mandates: rows.map(toProto) };
     },
+
+    async listBudgets() {
+      const rows = await store.budgets();
+      return {
+        budgets: rows.map((b) => ({
+          agentId: b.agentId,
+          dailyBudget: fromMinor(b.limitMinor, b.currency),
+          used: fromMinor(b.usedMinor, b.currency),
+        })),
+      };
+    },
   };
 }
