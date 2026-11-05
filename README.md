@@ -36,7 +36,7 @@ flowchart LR
 
 ## Features
 
-- **Mandates.** The owner grants the agent a scoped, time-limited permission in plain terms: "pay approved contractor invoices, up to $100 each and $200 in total, only to these two people, until tonight".
+- **Mandates.** The owner grants the agent a scoped, time-limited permission in plain terms: "pay approved contractor invoices, up to $100 each and $200 in total, only to these two people, until tonight". The owner can also just describe it ("pay Arjun, arjun@mehta-dev.example, up to $100 each") and a model fills in the form. It can only narrow what was written: a payee, id or amount it proposes is kept only if it appears in the owner's words, and nothing is granted until the owner presses grant.
 - **Policy.** Every money-moving call is checked against the mandate and the agent's limits: per-payment cap, daily budget, allowed and denied payees, payment rate, repeats of a recent payment, and payments to one payee that add up past the per-payment cap. Rules are written in [Cedar](https://www.cedarpolicy.com/) and each one reports a reason code and a plain sentence.
 - **Provenance.** Warden also proxies the agent's other tools, such as its inbox, and remembers the payees, amounts and PayPal ids the agent read there. A payout to an address that appeared only in that content, and nowhere in what the owner wrote, is held for the owner with `PAYEE_FROM_UNTRUSTED_CONTENT`.
 - **Intent judge.** Optionally, an LLM reads the owner's mandate and the payment and says whether one serves the other. It sees the payee, amount and tool, plus whether the agent read them in untrusted content, but never the untrusted text itself, so an email can't talk to it. Any OpenAI-compatible endpoint works (`JUDGE_LLM_BASE_URL`, `JUDGE_LLM_MODEL`).
