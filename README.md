@@ -131,6 +131,37 @@ pnpm paypal:seed              # creates captured sandbox orders, so there is mon
 | Agent MCP endpoint | `http://localhost:7000/mcp` with `Authorization: Bearer <WARDEN_AGENT_KEY>` |
 | Demo inbox (MCP)   | port 7010                                                                   |
 
+### Connect an agent
+
+Any MCP client that takes a URL and a header works. With the `claude` CLI:
+
+```sh
+claude mcp add --transport http warden http://localhost:7000/mcp --header "Authorization: Bearer <WARDEN_AGENT_KEY>"
+```
+
+With Cursor, in `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "warden": {
+      "url": "http://localhost:7000/mcp",
+      "headers": { "Authorization": "Bearer <WARDEN_AGENT_KEY>" }
+    }
+  }
+}
+```
+
+### Run it on a server
+
+[`deploy/compose/public.yaml`](deploy/compose/public.yaml) puts Caddy in front with HTTPS for your domain and closes every other port, so Postgres, Kafka and Temporal are never reachable from outside. Point a DNS record at the host, set `WARDEN_DOMAIN` in `.env`, and:
+
+```sh
+docker compose -f compose.yaml -f deploy/compose/public.yaml --profile app up -d --build --wait
+```
+
+The dashboard is then at `https://<domain>/` and agents connect to `https://<domain>/mcp`. Give the host at least 4 GB of memory.
+
 ## The demo
 
 `demo/ops-agent` is an operations assistant for a small design studio. It reads the day's inbox and pays invoices and refunds. One invoice hides an instruction to send the payment to a different account.

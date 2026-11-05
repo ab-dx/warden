@@ -1,0 +1,33 @@
+# a public instance: https on 80/443 in front of the dashboard and the mcp endpoint, and
+# nothing else reachable from outside. set WARDEN_DOMAIN in .env, point its dns at the host,
+#   docker compose -f compose.yaml -f deploy/compose/public.yaml --profile app up -d --build --wait
+services:
+  postgres: { ports: !reset [] }
+  kafka: { ports: !reset [] }
+  temporal: { ports: !reset [] }
+  jaeger: { ports: !reset [] }
+  ollama: { ports: !reset [] }
+  inbox: { ports: !reset [] }
+  edge-gateway: { ports: !reset [] }
+  api:
+    ports: !reset []
+    environment:
+      COOKIE_SECURE: "true"
+
+  # caddy gets and renews the certificate for WARDEN_DOMAIN by itself
+  caddy:
+    image: caddy:2
+    profiles: [app]
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      WARDEN_DOMAIN: ${WARDEN_DOMAIN:?set WARDEN_DOMAIN in .env}
+    volumes:
+      - ./deploy/compose/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy:/data
+    depends_on:
+      api: { condition: service_healthy }
+      edge-gateway: { condition: service_healthy }
+
+volumes:
+  caddy:

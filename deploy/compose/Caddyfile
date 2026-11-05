@@ -1,0 +1,12 @@
+{$WARDEN_DOMAIN} {
+	# agents: mcp over streamable http, which can stream, so don't buffer
+	handle /mcp* {
+		reverse_proxy edge-gateway:7000 {
+			flush_interval -1
+		}
+	}
+	# the owner: dashboard and its api
+	handle {
+		reverse_proxy api:7005
+	}
+}
