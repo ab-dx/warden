@@ -6,8 +6,8 @@ const same = (a: string, b: string) => {
   return timingSafeEqual(x, y);
 };
 
-// signed "user.expiry.mac" cookie. the dashboard is the only place a person can approve
-// a payment, so an agent holding its mcp key still can't get one.
+// signed "user.expiry.mac" cookie. only the owner can approve a payment, here or from their
+// telegram chat, so an agent holding its mcp key still can't get one.
 export function sessions(opts: {
   secret: string;
   password: string;

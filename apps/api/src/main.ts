@@ -8,8 +8,10 @@ import { Connection, Client as TemporalClient } from '@temporalio/client';
 import { LedgerService, PolicyService } from '@warden/contracts';
 import { internalClient } from '@warden/service-kit';
 import { z } from 'zod';
+import { decide, pendingApprovals } from './approvals.js';
 import { ApiController, DEPS, type Deps, SessionController } from './http.js';
 import { sessions } from './session.js';
+import { botApi, startTelegram, telegramApprovals } from './telegram.js';
 
 const env = z
   .object({
@@ -28,6 +30,13 @@ const env = z
     POLICY_TOKEN: z.string().min(32),
     TEMPORAL_ADDRESS: z.string().default('localhost:7233'),
     TEMPORAL_NAMESPACE: z.string().default('default'),
+    // both set: held payments are also sent to this chat with approve and reject buttons
+    TELEGRAM_BOT_TOKEN: z.string().optional(),
+    // an empty line in .env means unset, not chat 0
+    TELEGRAM_CHAT_ID: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.coerce.number().int().optional(),
+    ),
     DASHBOARD_DIR: z
       .string()
       .default(fileURLToPath(new URL('../../dashboard/dist', import.meta.url))),
@@ -85,3 +94,17 @@ if (existsSync(c.DASHBOARD_DIR)) {
 
 await app.listen(c.API_PORT);
 Logger.log(`api and dashboard on :${c.API_PORT}`, 'main');
+
+if (c.TELEGRAM_BOT_TOKEN && c.TELEGRAM_CHAT_ID !== undefined) {
+  const { ledger, temporal } = deps;
+  startTelegram(
+    telegramApprovals({
+      bot: botApi(c.TELEGRAM_BOT_TOKEN),
+      chatId: c.TELEGRAM_CHAT_ID,
+      pending: () => pendingApprovals(ledger, temporal),
+      decide: (callId, approved, by) => decide(temporal, callId, approved, by),
+    }),
+    (msg) => Logger.warn(msg, 'telegram'),
+  );
+  Logger.log('approvals also go to telegram', 'main');
+}
