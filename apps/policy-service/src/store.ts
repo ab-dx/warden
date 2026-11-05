@@ -8,6 +8,7 @@ import {
   type Facts,
   type Tier,
   type Verdict,
+  withinHours,
 } from './engine/engine.js';
 import type { PolicyFile } from './engine/policy-file.js';
 
@@ -210,6 +211,7 @@ export class PolicyStore {
         recentCalls: recent.rows[0]?.n ?? 0,
         duplicate: (dup.rows[0]?.n ?? 0) > 0,
         payeeRecentMinor: BigInt(toPayee?.rows[0]?.used ?? 0),
+        withinHours: policy.allowed_hours ? withinHours(new Date(), policy.allowed_hours) : true,
       };
       const held =
         policy.max_escalations_per_hour > 0

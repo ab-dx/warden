@@ -17,6 +17,16 @@ const pattern = z
   .string()
   .regex(/^[A-Za-z0-9@._+*-]+$/, 'pattern may only use letters, digits, @ . _ + - *');
 
+const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'use 24-hour HH:MM');
+const timezone = z.string().refine((tz) => {
+  try {
+    new Intl.DateTimeFormat('en-GB', { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}, 'unknown timezone');
+
 const agentPolicy = z
   .object({
     require_mandate_for: z.array(tier).default(['T2', 'T3']),
@@ -32,6 +42,10 @@ const agentPolicy = z
     split_window_seconds: z.number().int().nonnegative().default(0),
     // held payments per agent per hour before the rest are refused outright; 0 is off
     max_escalations_per_hour: z.number().int().nonnegative().default(0),
+    // money only moves between these times; to before from is an overnight window
+    allowed_hours: z
+      .object({ from: clock, to: clock, timezone, tiers: z.array(tier).default(['T3']) })
+      .optional(),
     deny_counterparties: z.array(pattern).default([]),
     // reason codes that send a call to a human; every other reason denies
     escalate_when: z.array(z.string()).default([]),

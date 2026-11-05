@@ -11,6 +11,8 @@ agents:
     split_window_seconds: 3600
     # held payments per hour before the rest are refused, so the owner isn't worn down
     max_escalations_per_hour: 10
+    # money only moves in these hours (off here, since demos run at any time):
+    # allowed_hours: { from: "09:00", to: "18:00", timezone: Asia/Kolkata, tiers: [T3] }
     deny_counterparties: ["*@temp-mail.org", "*@guerrillamail.com"]
     # these reasons go to the user for a decision; any other reason denies outright
     escalate_when:

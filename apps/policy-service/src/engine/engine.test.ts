@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { capEscalations, compile, evaluate, type Facts } from './engine.js';
+import { capEscalations, compile, evaluate, type Facts, withinHours } from './engine.js';
 import { parsePolicyFile } from './policy-file.js';
 
 const file = parsePolicyFile(`
@@ -34,6 +34,7 @@ const ok: Facts = {
   recentCalls: 0,
   duplicate: false,
   payeeRecentMinor: 0n,
+  withinHours: true,
 };
 const run = (over: Partial<Facts>) => evaluate(policy, policies, { ...ok, ...over });
 const codes = (over: Partial<Facts>) => run(over).reasons.map((r) => r.code);
@@ -129,6 +130,65 @@ describe('policy engine', () => {
       reasons: [{ code: 'CHECK_FAILED' }],
     });
     expect(run({ amountMinor: 2n ** 60n }).reasons[0]?.code).toBe('AMOUNT_INVALID');
+  });
+});
+
+describe('allowed hours', () => {
+  const office = { from: '09:00', to: '18:00', timezone: 'Asia/Kolkata' };
+
+  it("reads the clock in the owner's timezone, end exclusive", () => {
+    // 03:30 utc is 09:00 in india; 12:30 utc is 18:00
+    expect(withinHours(new Date('2026-11-05T03:30:00Z'), office)).toBe(true);
+    expect(withinHours(new Date('2026-11-05T03:29:00Z'), office)).toBe(false);
+    expect(withinHours(new Date('2026-11-05T12:29:00Z'), office)).toBe(true);
+    expect(withinHours(new Date('2026-11-05T12:30:00Z'), office)).toBe(false);
+  });
+
+  it('handles a window that runs overnight', () => {
+    const night = { from: '22:00', to: '06:00', timezone: 'UTC' };
+    expect(withinHours(new Date('2026-11-05T23:15:00Z'), night)).toBe(true);
+    expect(withinHours(new Date('2026-11-05T05:59:00Z'), night)).toBe(true);
+    expect(withinHours(new Date('2026-11-05T12:00:00Z'), night)).toBe(false);
+  });
+
+  it('allows money inside the hours and blocks it outside, only for the tiers listed', () => {
+    const p = parsePolicyFile(`
+agents:
+  a:
+    max_per_call: { value: "150.00", currency: USD }
+    daily_budget: { value: "300.00", currency: USD }
+    velocity: { max_calls: 3, per_seconds: 60, tiers: [T3] }
+    duplicate_window_seconds: 300
+    allowed_hours: { from: "09:00", to: "18:00", timezone: Asia/Kolkata }
+`).agents.a;
+    if (!p) throw new Error('policy');
+    const rules = compile(p);
+    const at = (over: Partial<Facts>) =>
+      evaluate(p, rules, { ...ok, ...over }).reasons.map((r) => r.code);
+    expect(at({ withinHours: true })).not.toContain('OUTSIDE_ALLOWED_HOURS');
+    expect(at({ withinHours: false })).toContain('OUTSIDE_ALLOWED_HOURS');
+    expect(evaluate(p, rules, { ...ok, withinHours: false }).outcome).toBe('deny');
+    expect(at({ withinHours: false, tier: 'T1', mandate: undefined })).not.toContain(
+      'OUTSIDE_ALLOWED_HOURS',
+    );
+  });
+
+  it('rejects a malformed time or an unknown timezone', () => {
+    const bad = (hours: string) => `
+agents:
+  a:
+    max_per_call: { value: "1.00", currency: USD }
+    daily_budget: { value: "1.00", currency: USD }
+    velocity: { max_calls: 1, per_seconds: 1, tiers: [] }
+    duplicate_window_seconds: 0
+    allowed_hours: ${hours}
+`;
+    expect(() => parsePolicyFile(bad('{ from: "9am", to: "18:00", timezone: UTC }'))).toThrow(
+      /HH:MM/,
+    );
+    expect(() =>
+      parsePolicyFile(bad('{ from: "09:00", to: "18:00", timezone: Mars/Base }')),
+    ).toThrow(/timezone/);
   });
 });
 

@@ -25,6 +25,8 @@ export type Facts = {
   duplicate: boolean;
   // live payments to this payee in the split window, not counting this one
   payeeRecentMinor: bigint;
+  // inside the policy's allowed hours, or true when it has none
+  withinHours: boolean;
 };
 
 export type Verdict = { outcome: Outcome; reasons: Reason[] };
@@ -55,6 +57,7 @@ export function compile(policy: AgentPolicy): Record<string, string> {
       'context.velocity_applies && context.recent_calls >= context.velocity_max',
     ),
     DUPLICATE_PAYMENT: forbid('context.duplicate'),
+    OUTSIDE_ALLOWED_HOURS: forbid('context.hours_apply && !context.within_hours'),
     // several payments to one payee that together pass the per-payment cap look like one
     // payment split up to get under it. the first payment is left to the cap itself
     SPLIT_PAYMENT: forbid(
@@ -112,6 +115,8 @@ export function evaluate(policy: AgentPolicy, policies: Record<string, string>, 
       velocity_max: policy.velocity.max_calls,
       duplicate: f.duplicate,
       payee_recent: Number(f.payeeRecentMinor),
+      hours_apply: policy.allowed_hours?.tiers.includes(f.tier) ?? false,
+      within_hours: f.withinHours,
     },
     policies: { staticPolicies: policies },
     entities: [{ uid: { type: 'Payment', id: 'call' }, attrs: resource, parents: [] }],
@@ -133,6 +138,26 @@ export function evaluate(policy: AgentPolicy, policies: Record<string, string>, 
   const reasons = unique.map((code) => ({ code, message: message(code, f), check: 'policy' }));
   const outcome = unique.every(escalates) ? 'escalate' : 'deny';
   return { outcome, reasons };
+}
+
+// whether a moment falls in an HH:MM window in the given timezone. a window whose end is
+// before its start runs overnight, 22:00 to 06:00 say
+export function withinHours(now: Date, w: { from: string; to: string; timezone: string }) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: w.timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const at = (t: string) => {
+    const [h = '0', m = '0'] = t.split(':');
+    return Number(h) * 60 + Number(m);
+  };
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '0';
+  const t = Number(part('hour')) * 60 + Number(part('minute'));
+  const from = at(w.from);
+  const to = at(w.to);
+  return from <= to ? t >= from && t < to : t >= from || t < to;
 }
 
 // an agent that keeps asking can wear the owner down until they tap approve without reading.
@@ -192,6 +217,8 @@ function message(code: string, f: Facts): string {
       return `An identical payment to ${who} was made moments ago. This looks like a repeat.`;
     case 'SPLIT_PAYMENT':
       return `${amt} to ${who} would bring recent payments to them to ${fmt(f.payeeRecentMinor + (f.amountMinor ?? 0n), f.currency)}, above the mandate's per-payment limit of ${fmt(f.mandate?.maxPerCallMinor, f.currency)}. This looks like one payment split up.`;
+    case 'OUTSIDE_ALLOWED_HOURS':
+      return 'Payments are only allowed during the hours the user set. Ask the user, or try again then.';
     case 'COUNTERPARTY_DENYLISTED':
       return `${who} is on the deny list.`;
     default:
