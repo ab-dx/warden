@@ -4,12 +4,23 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { chatCompletions, intentJudge } from '@warden/judge-service/intent';
 import { type Brain, llmBrain, runAgent, scriptedBrain } from '@warden/ops-agent';
 import pg from 'pg';
 import { z } from 'zod';
 import { directPayPal } from './direct.js';
+import { judgeCases } from './judge-cases.js';
 import { loadScenarios, type Scenario } from './scenario.js';
-import { type Asked, grade, markAsked, type ScenarioResult, summarise, tracker } from './score.js';
+import {
+  type Asked,
+  grade,
+  type LedgerCall,
+  ledgerCheck,
+  markAsked,
+  type ScenarioResult,
+  summarise,
+  tracker,
+} from './score.js';
 
 const AGENT = 'bench-agent';
 const ARMS = ['baseline', 'policy', 'provenance', 'full'] as const;
@@ -28,6 +39,7 @@ const env = z
     AGENT_API_KEY: z.string().optional(),
     JUDGE_LLM_BASE_URL: z.string().optional(),
     JUDGE_LLM_MODEL: z.string().optional(),
+    JUDGE_LLM_API_KEY: z.string().optional(),
   })
   .parse(process.env);
 
@@ -153,20 +165,36 @@ function approver(call: Awaited<ReturnType<typeof api>>, s: Scenario) {
 
 // a payout paypal refused spends nothing, so warden frees its budget. if the sandbox runs
 // dry, later payments in a scenario get room they shouldn't, and the numbers mean little.
-async function payoutsFailed(call: Awaited<ReturnType<typeof api>>, since: Date) {
+async function checkLedger(call: Awaited<ReturnType<typeof api>>, since: Date) {
   await sleep(1000);
-  const rows = ((await call('GET', `/api/calls?agent=${AGENT}&limit=50`)) ?? []) as {
-    tool: string;
-    status: string;
-    receivedAt?: string;
-  }[];
-  return rows.filter(
-    (c) =>
-      c.tool === 'send_payout' &&
-      c.status === 'failed' &&
-      c.receivedAt !== undefined &&
-      new Date(c.receivedAt) >= since,
-  ).length;
+  const rows = ((await call('GET', `/api/calls?agent=${AGENT}&limit=50`)) ?? []) as LedgerCall[];
+  return ledgerCheck(rows, since);
+}
+
+// one asked-for payment straight to the judge model, before any arm spends sandbox payouts.
+// a compose service name (no dot, like ollama) isn't reachable from here, so that case is
+// left to the check after each scenario
+async function preflightJudge() {
+  const url = env.JUDGE_LLM_BASE_URL;
+  if (!url || !env.JUDGE_LLM_MODEL || !new URL(url).hostname.includes('.')) return;
+  // any asked-for payment will do, even if --only picked none
+  const c = judgeCases(loadScenarios(`${root}scenarios`)).find((x) => x.want === 'allow');
+  if (!c) return;
+  const judge = intentJudge({
+    complete: chatCompletions({
+      baseUrl: url,
+      model: env.JUDGE_LLM_MODEL,
+      apiKey: env.JUDGE_LLM_API_KEY,
+      timeoutMs: 30_000,
+    }),
+    minConfidence: 0,
+  });
+  const v = await judge(c.intent, c.mandates, c.seen);
+  const failed = v.reasons.find((r) => r.code === 'CHECK_FAILED');
+  if (failed)
+    throw new Error(
+      `the judge failed its preflight, so the full arm would only deny: ${failed.message}`,
+    );
 }
 
 const system = (s: Scenario) =>
@@ -243,12 +271,16 @@ async function runScenario(
     asked = await stop();
   }
   markAsked(t.calls, asked);
-  return {
-    result: grade(s, t.calls),
-    payoutsFailed: arm === 'baseline' ? 0 : await payoutsFailed(call, started),
-  };
+  const ledger =
+    arm === 'baseline'
+      ? { payoutsFailed: 0, judgeFailed: undefined }
+      : await checkLedger(call, started);
+  if (ledger.judgeFailed)
+    throw new Error(`the judge failed in ${arm} ${s.id}, stopping the run: ${ledger.judgeFailed}`);
+  return { result: grade(s, t.calls), payoutsFailed: ledger.payoutsFailed };
 }
 
+if (arms.includes('full')) await preflightJudge();
 const call = await api();
 const db = new pg.Pool({ connectionString: env.POLICY_DATABASE_URL, max: 2 });
 // the paypal tools as warden offers them, minus the inbox it proxies and its own check tool

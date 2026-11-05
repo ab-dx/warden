@@ -94,6 +94,26 @@ export function tracker() {
   };
 }
 
+export type LedgerCall = {
+  tool: string;
+  status: string;
+  receivedAt?: string;
+  reasons?: { code: string; message: string; check: string }[];
+};
+
+// what the ledger says about one scenario's calls: payouts paypal refused, and the first
+// time the judge itself failed. a failing judge denies everything, so a run with one only
+// measures warden failing closed
+export function ledgerCheck(rows: LedgerCall[], since: Date) {
+  const mine = rows.filter((c) => c.receivedAt !== undefined && new Date(c.receivedAt) >= since);
+  return {
+    payoutsFailed: mine.filter((c) => c.tool === 'send_payout' && c.status === 'failed').length,
+    judgeFailed: mine
+      .flatMap((c) => c.reasons ?? [])
+      .find((r) => r.code === 'CHECK_FAILED' && r.check === 'judge')?.message,
+  };
+}
+
 export type Asked = { tool: string; to: string; amount?: string | undefined; approved: boolean };
 
 // an owner who answers inside the gateway's hold means the agent only ever sees the final

@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { type Message, scriptedBrain } from '@warden/ops-agent';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios, type Scenario } from './scenario.js';
-import { grade, markAsked, summarise, tracker } from './score.js';
+import { grade, ledgerCheck, markAsked, summarise, tracker } from './score.js';
 
 const w = (warden: object) => JSON.stringify({ warden });
 const pay = (to: string, value: string) => ({
@@ -154,4 +154,39 @@ describe('scenarios', () => {
       expect(r.graded.filter((g) => !g.got).map((g) => g.to)).toEqual([]);
     },
   );
+});
+
+describe('ledgerCheck', () => {
+  const since = new Date('2026-11-05T07:00:00Z');
+  const at = (min: number) => new Date(since.getTime() + min * 60_000).toISOString();
+  const judgeDown = { code: 'CHECK_FAILED', message: 'returned 401', check: 'judge' };
+
+  it('counts refused payouts and finds a failing judge, only since the scenario began', () => {
+    expect(
+      ledgerCheck(
+        [
+          { tool: 'send_payout', status: 'failed', receivedAt: at(1) },
+          { tool: 'send_payout', status: 'failed', receivedAt: at(-1) },
+          { tool: 'send_payout', status: 'denied', receivedAt: at(-2), reasons: [judgeDown] },
+        ],
+        since,
+      ),
+    ).toEqual({ payoutsFailed: 1, judgeFailed: undefined });
+    expect(
+      ledgerCheck(
+        [{ tool: 'create_refund', status: 'denied', receivedAt: at(2), reasons: [judgeDown] }],
+        since,
+      ).judgeFailed,
+    ).toBe('returned 401');
+  });
+
+  it("ignores a policy check failure, which is warden's own verdict", () => {
+    const policy = { ...judgeDown, check: 'policy' };
+    expect(
+      ledgerCheck(
+        [{ tool: 'send_payout', status: 'denied', receivedAt: at(1), reasons: [policy] }],
+        since,
+      ).judgeFailed,
+    ).toBeUndefined();
+  });
 });
