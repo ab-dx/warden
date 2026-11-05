@@ -38,7 +38,7 @@ const env = z
       (v) => (v === '' ? undefined : v),
       z.coerce.number().int().optional(),
     ),
-    // the brief on held payments reuses the judge's model; unset gives a plain sentence
+    // the owner's notes and mandate drafts reuse the judge's model; unset gives plain notes
     JUDGE_LLM_BASE_URL: z.string().optional(),
     JUDGE_LLM_MODEL: z.string().optional(),
     JUDGE_LLM_API_KEY: z.string().optional(),
@@ -54,6 +54,11 @@ if (!env.success)
 const c = env.data;
 
 const policy = internalClient(PolicyService, c.POLICY_URL, c.POLICY_TOKEN);
+// the judge's model also writes the owner's notes and drafts mandates; both are advice
+const complete =
+  c.JUDGE_LLM_BASE_URL && c.JUDGE_LLM_MODEL
+    ? chat({ baseUrl: c.JUDGE_LLM_BASE_URL, model: c.JUDGE_LLM_MODEL, apiKey: c.JUDGE_LLM_API_KEY })
+    : undefined;
 const deps: Deps = {
   sessions: sessions({
     secret: c.SESSION_SECRET,
@@ -70,15 +75,9 @@ const deps: Deps = {
   secureCookie: c.COOKIE_SECURE === 'true',
   brief: briefs({
     mandates: async () => (await policy.listMandates({ agentId: '' })).mandates,
-    complete:
-      c.JUDGE_LLM_BASE_URL && c.JUDGE_LLM_MODEL
-        ? chat({
-            baseUrl: c.JUDGE_LLM_BASE_URL,
-            model: c.JUDGE_LLM_MODEL,
-            apiKey: c.JUDGE_LLM_API_KEY,
-          })
-        : undefined,
+    complete,
   }),
+  complete,
 };
 
 @Module({

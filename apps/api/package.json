@@ -20,6 +20,7 @@
     "@nestjs/platform-express": "12.3.2",
     "@temporalio/client": "1.25.0",
     "@warden/contracts": "workspace:*",
+    "@warden/core": "workspace:*",
     "@warden/service-kit": "workspace:*",
     "express": "^5.3.0",
     "reflect-metadata": "0.2.2",

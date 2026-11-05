@@ -103,6 +103,20 @@ export function Mandates() {
       qc.invalidateQueries({ queryKey: ['mandates'] });
     },
   });
+  const [words, setWords] = useState('');
+  const draft = useMutation({
+    mutationFn: () => api.draftMandate(words),
+    onSuccess: (d) =>
+      setForm((f) => ({
+        task: d.task,
+        tools: d.tools.length > 0 ? d.tools : f.tools,
+        maxPerCall: d.maxPerCall ?? '',
+        maxTotal: d.maxTotal ?? '',
+        payees: d.counterparties.join('\n'),
+        // the shortest choice that covers what was asked, or the longest one
+        minutes: DURATIONS.find(([v]) => v >= (d.expiresInMinutes ?? f.minutes))?.[0] ?? 10080,
+      })),
+  });
   const submit = (e: FormEvent) => {
     e.preventDefault();
     create.mutate();
@@ -131,6 +145,45 @@ export function Mandates() {
 
       <form onSubmit={submit} className="space-y-4 border-t-2 border-ink pt-6">
         <h2 className="text-lg font-semibold">Give the agent a mandate</h2>
+        <div className="space-y-2 rounded-sm border border-rule bg-sheet p-4">
+          <label className="block">
+            <span className="text-sm font-medium">
+              Or describe it, and Warden fills in the form
+            </span>
+            <textarea
+              rows={2}
+              value={words}
+              onChange={(e) => setWords(e.target.value)}
+              className={field}
+              placeholder="Pay Arjun (arjun@mehta-dev.example) up to $100 each and $200 in total, until tonight"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => draft.mutate()}
+            disabled={draft.isPending || words.trim() === ''}
+            className="rounded-sm border border-ink px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+          >
+            {draft.isPending ? 'Reading…' : 'Fill in the form'}
+          </button>
+          {draft.isSuccess && (
+            <div className="text-sm" aria-live="polite">
+              <p>Check every field below, then grant it. Nothing is allowed until you do.</p>
+              {draft.data.dropped.length > 0 && (
+                <ul className="mt-1 list-disc pl-5 text-held">
+                  {draft.data.dropped.map((d) => (
+                    <li key={d}>Left out: {d}.</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          {draft.isError && (
+            <p role="alert" className="text-sm text-refused">
+              {(draft.error as Error).message}
+            </p>
+          )}
+        </div>
         <label className="block">
           <span className="text-sm font-medium">What is it for, in your words</span>
           <input

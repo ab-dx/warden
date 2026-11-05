@@ -71,11 +71,23 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return data as T;
 }
 
+// a proposed mandate from the owner's words; only fills the form
+export type Draft = {
+  task: string;
+  tools: string[];
+  counterparties: string[];
+  maxPerCall: string | null;
+  maxTotal: string | null;
+  expiresInMinutes: number | null;
+  dropped: string[];
+};
+
 export const api = {
   me: () => call<{ user: string }>('GET', '/api/session'),
   login: (password: string) => call<void>('POST', '/api/session', { password }),
   logout: () => call<void>('DELETE', '/api/session'),
   approvals: () => call<Approval[]>('GET', '/api/approvals'),
+  draftMandate: (text: string) => call<Draft>('POST', '/api/mandates/draft', { text }),
   decide: (callId: string, approved: boolean) =>
     call<void>('POST', `/api/approvals/${callId}`, { approved }),
   calls: () => call<Call[]>('GET', '/api/calls?limit=40'),

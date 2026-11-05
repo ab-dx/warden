@@ -217,6 +217,9 @@ importers:
       '@warden/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@warden/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@warden/service-kit':
         specifier: workspace:*
         version: link:../../packages/service-kit

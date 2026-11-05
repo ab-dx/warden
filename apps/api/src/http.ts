@@ -31,6 +31,8 @@ import {
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { decide, type Ledger, pendingApprovals } from './approvals.js';
+import type { Complete } from './brief.js';
+import { draftMandate } from './draft.js';
 import type { Sessions } from './session.js';
 
 export const DEPS = Symbol('deps');
@@ -42,6 +44,8 @@ export type Deps = {
   secureCookie: boolean;
   // a note for the owner on each held payment; advice only
   brief: (call: CallSummary) => Promise<string>;
+  // drafts a mandate from the owner's words; unset when no model is configured
+  complete?: Complete | undefined;
 };
 
 const COOKIE = 'warden_session';
@@ -116,6 +120,7 @@ export class SessionController {
 }
 
 const decision = z.object({ approved: z.boolean() });
+const draftInput = z.object({ text: z.string().trim().min(1).max(1000) });
 
 const newMandate = z.object({
   agentId: z.string().min(1),
@@ -185,6 +190,19 @@ export class ApiController {
   async mandates() {
     const { mandates } = await rpc(this.deps.policy.listMandates({ agentId: '' }));
     return mandates.map((m) => toJson(MandateSchema, m));
+  }
+
+  // a proposal for the form only; nothing takes effect until the owner grants it
+  @Post('mandates/draft')
+  async draft(@Body() body: unknown) {
+    const parsed = draftInput.safeParse(body);
+    if (!parsed.success) throw new HttpException('send { "text": "..." }', 400);
+    if (!this.deps.complete) throw new HttpException('no model is configured for drafting', 503);
+    try {
+      return await draftMandate(parsed.data.text, this.deps.complete);
+    } catch {
+      throw new HttpException('the model could not draft this; fill the form in by hand', 502);
+    }
   }
 
   @Post('mandates')
