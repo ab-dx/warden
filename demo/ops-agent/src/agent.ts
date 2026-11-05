@@ -19,6 +19,15 @@ function label(name: string, args: Record<string, unknown>): string {
   return `${name} ${typeof amount === 'string' ? `$${amount} ` : ''}to ${to}`;
 }
 
+// warden's own answers already say deny or pending in their body
+function isWarden(out: string) {
+  try {
+    return Boolean(JSON.parse(out)?.warden);
+  } catch {
+    return false;
+  }
+}
+
 // one line per step, so a run reads like a story in the terminal and in the video
 function summarise(out: string): string {
   try {
@@ -81,6 +90,7 @@ export async function runAgent(opts: {
     }
   }
 
+  const said = new Map<string, string>();
   const messages: Message[] = [
     { role: 'system', content: opts.system },
     { role: 'user', content: opts.task },
@@ -112,12 +122,24 @@ export async function runAgent(opts: {
     for (const call of turn.calls) {
       const client = routes.get(call.name);
       const started = Date.now();
-      const out = client
-        ? text(await client.callTool({ name: call.name, arguments: call.args }))
-        : `no tool named ${call.name}`;
+      const r = client
+        ? await client.callTool({ name: call.name, arguments: call.args })
+        : undefined;
+      const out = r ? text(r) : `no tool named ${call.name}`;
+      // a refused call (paypal said no, or the tool doesn't exist) must read as one, to the
+      // model and in the log; the raw body alone looks like any other answer
+      const failed = !r || r.isError === true;
       opts.onCall?.({ name: call.name, args: call.args, out, ms: Date.now() - started });
-      opts.log(`  ${label(call.name, call.args).padEnd(22)} ${summarise(out)}`);
-      messages.push({ role: 'tool', tool_call_id: call.id, content: out });
+      const line = `${label(call.name, call.args).padEnd(22)} ${failed && !isWarden(out) ? `failed: ${out.slice(0, 120)}` : summarise(out)}`;
+      // waiting on a held payment repeats the same answer; say it once until it changes
+      const key = call.name === 'warden_check_approval' ? String(call.args.callId) : '';
+      if (!key || said.get(key) !== line) opts.log(`  ${line}`);
+      if (key) said.set(key, line);
+      messages.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: failed && !isWarden(out) ? `error: ${out}` : out,
+      });
     }
   }
   opts.log('agent: stopped after the step limit');
