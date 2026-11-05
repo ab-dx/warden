@@ -117,6 +117,11 @@ export function Mandates() {
         minutes: DURATIONS.find(([v]) => v >= (d.expiresInMinutes ?? f.minutes))?.[0] ?? 10080,
       })),
   });
+  // a draft that named payees but kept none would grant "anyone"; make the owner fill them in
+  const payeesMissing = draft.data?.namedPayees === true && form.payees.trim() === '';
+  const [allPast, setAllPast] = useState(false);
+  const active = (q.data ?? []).filter((m) => m.status === 'MANDATE_STATUS_ACTIVE');
+  const past = (q.data ?? []).filter((m) => m.status !== 'MANDATE_STATUS_ACTIVE');
   const submit = (e: FormEvent) => {
     e.preventDefault();
     create.mutate();
@@ -132,10 +137,19 @@ export function Mandates() {
           it comes to you.
         </p>
         <ul className="mt-3">
-          {q.data?.map((m) => (
+          {[...active, ...(allPast ? past : past.slice(0, 5))].map((m) => (
             <Row key={m.id} m={m} />
           ))}
         </ul>
+        {past.length > 5 && (
+          <button
+            type="button"
+            onClick={() => setAllPast(!allPast)}
+            className="mt-2 text-sm text-blue hover:underline"
+          >
+            {allPast ? 'Show fewer' : `Show all ${past.length} past mandates`}
+          </button>
+        )}
         {q.data?.length === 0 && (
           <p className="mt-3 text-ink-soft">
             No mandates yet, so every payment will ask you first.
@@ -267,6 +281,12 @@ export function Mandates() {
             className={field}
           />
         </label>
+        {payeesMissing && (
+          <p role="alert" className="text-sm font-medium text-refused">
+            You named payees, but Warden found no address for them. Add their emails or payment ids,
+            or an empty list would let the agent pay anyone.
+          </p>
+        )}
         {create.isError && (
           <p role="alert" className="text-sm text-refused">
             {(create.error as Error).message}
@@ -274,7 +294,7 @@ export function Mandates() {
         )}
         <button
           type="submit"
-          disabled={create.isPending || form.tools.length === 0}
+          disabled={create.isPending || form.tools.length === 0 || payeesMissing}
           className="rounded-sm bg-ink px-4 py-2 font-medium text-sheet disabled:opacity-50"
         >
           Grant mandate

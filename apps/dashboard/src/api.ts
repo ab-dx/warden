@@ -80,6 +80,7 @@ export type Draft = {
   maxTotal: string | null;
   expiresInMinutes: number | null;
   dropped: string[];
+  namedPayees: boolean;
 };
 
 export const api = {

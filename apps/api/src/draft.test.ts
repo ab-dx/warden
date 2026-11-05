@@ -21,7 +21,21 @@ describe('vet', () => {
       maxTotal: '200.00',
       expiresInMinutes: 1440,
       dropped: [],
+      namedPayees: true,
     });
+  });
+
+  it('takes the address out of a payee written as a name with an address', () => {
+    const d = vet(TEXT, { counterparties: ['Arjun (arjun@mehta-dev.example)', 'Lena'] });
+    expect(d.counterparties).toEqual(['arjun@mehta-dev.example']);
+    expect(d.namedPayees).toBe(true);
+  });
+
+  it('flags a draft whose named payees all fell out, so it cannot widen to anyone', () => {
+    const d = vet('Pay Lena up to $50', { counterparties: ['Lena'], maxPerCall: '50.00' });
+    expect(d.counterparties).toEqual([]);
+    expect(d.namedPayees).toBe(true);
+    expect(vet('Pay anyone up to $50', { counterparties: [] }).namedPayees).toBe(false);
   });
 
   it('drops a payee or a limit the model made up', () => {
@@ -51,6 +65,13 @@ describe('vet', () => {
     expect(d.maxTotal).toBeNull();
     expect(d.dropped).toContain('the total was below the per-payment limit');
     expect(d.expiresInMinutes).toBe(10080);
+  });
+
+  it('says a bare name needs an address, not that it was never written', () => {
+    const d = vet(TEXT, { tools: ['send_payout'], counterparties: ['Lena'] });
+    expect(d.dropped).toEqual([
+      'Lena has no email or PayPal id in what you wrote, so add it yourself to cover them',
+    ]);
   });
 
   it('keeps a payment id the owner named', () => {

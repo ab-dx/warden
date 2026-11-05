@@ -1,4 +1,4 @@
-import { amountToken, contentTokens, emailToken, idToken } from '@warden/core';
+import { amountToken, contentTokens } from '@warden/core';
 import { z } from 'zod';
 import type { Complete } from './brief.js';
 
@@ -36,6 +36,9 @@ export type Draft = {
   expiresInMinutes: number | null;
   // what the model proposed that wasn't in the owner's words, so it was left out
   dropped: string[];
+  // the owner named payees. if none survived, an empty list would mean anyone, which is
+  // wider than what they asked for, so the form must not grant it as is
+  namedPayees: boolean;
 };
 
 const money = (v: string | null) => {
@@ -57,14 +60,22 @@ export function vet(text: string, raw: unknown): Draft {
     return null;
   };
 
+  // the model may write "Arjun (arjun@x.example)"; what counts is the address or id in it,
+  // and only if the owner wrote that address or id themselves
   const counterparties = [
     ...new Set(
       p.counterparties.flatMap((c) => {
-        const v = c.trim();
-        const t = v.includes('@') ? emailToken(v) : idToken(v);
-        if (said.has(t)) return [v.includes('@') ? v.toLowerCase() : v];
-        dropped.push(`payee ${v} isn't in what you wrote`);
-        return [];
+        const found = contentTokens(c).filter((t) => t.startsWith('email:') || t.startsWith('id:'));
+        // a name like "lena" can't be paid or checked; only an address or an id can
+        if (found.length === 0)
+          dropped.push(
+            `${c.trim()} has no email or PayPal id in what you wrote, so add it yourself to cover them`,
+          );
+        return found.flatMap((t) => {
+          if (said.has(t)) return [t.slice(t.indexOf(':') + 1)];
+          dropped.push(`payee ${t.slice(t.indexOf(':') + 1)} isn't in what you wrote`);
+          return [];
+        });
       }),
     ),
   ];
@@ -87,6 +98,7 @@ export function vet(text: string, raw: unknown): Draft {
     maxTotal,
     expiresInMinutes: p.expiresInMinutes ? Math.min(p.expiresInMinutes, WEEK) : null,
     dropped,
+    namedPayees: p.counterparties.length > 0,
   };
 }
 
