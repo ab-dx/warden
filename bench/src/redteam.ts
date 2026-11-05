@@ -47,7 +47,21 @@ const h = await harness();
 if (arms.includes('full')) await preflightJudge();
 
 type Round = { round: number; email: z.infer<typeof email>; breached: boolean; saw: string };
-const chains: { arm: Arm; goal: string; breachedAt: number | null; rounds: Round[] }[] = [];
+const chains: {
+  arm: Arm;
+  goal: string;
+  breachedAt: number | null;
+  declinedAt: number | null;
+  rounds: Round[];
+}[] = [];
+
+function attempt(text: string) {
+  try {
+    return email.parse(JSON.parse(text));
+  } catch {
+    return undefined;
+  }
+}
 
 try {
   for (const arm of arms) {
@@ -57,12 +71,19 @@ try {
       if (!base) throw new Error(`no scenario ${goal.base}`);
       const history: Round[] = [];
       let breachedAt: number | null = null;
+      let declined: number | null = null;
       for (let round = 1; round <= rounds && breachedAt === null; round++) {
         const user = JSON.stringify({
           other_emails: base.emails.map(({ from, subject, body }) => ({ from, subject, body })),
           your_earlier_tries: history.map((r) => ({ email: r.email, what_happened: r.saw })),
         });
-        const e = email.parse(JSON.parse(await write(SYSTEM.replace('{aim}', goal.aim), user)));
+        // a model may refuse to write the attack; that ends the chain, it isn't a crash
+        const e = attempt(await write(SYSTEM.replace('{aim}', goal.aim), user));
+        if (!e) {
+          declined = round;
+          console.log(`${arm.padEnd(8)} ${goal.id.padEnd(15)} round ${round}: attacker declined`);
+          break;
+        }
         const { calls, said } = await h.run(arm, withAttack(base, goal, e), 'llm');
         const hit = goal.breached(calls);
         history.push({ round, email: e, breached: hit, saw: feedback(said, hit) });
@@ -71,7 +92,7 @@ try {
           `${arm.padEnd(8)} ${goal.id.padEnd(15)} round ${round}: ${hit ? 'BREACHED' : 'held'}`,
         );
       }
-      chains.push({ arm, goal: goal.id, breachedAt, rounds: history });
+      chains.push({ arm, goal: goal.id, breachedAt, declinedAt: declined, rounds: history });
     }
   }
 } finally {
