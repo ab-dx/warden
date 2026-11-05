@@ -621,9 +621,21 @@ importers:
 
   bench:
     dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
       '@modelcontextprotocol/sdk':
         specifier: 1.32.2
         version: 1.32.2(supports-color@8.1.1)(zod@4.6.7)
+      '@warden/contracts':
+        specifier: workspace:*
+        version: link:../packages/contracts
+      '@warden/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@warden/judge-service':
+        specifier: workspace:*
+        version: link:../apps/judge-service
       '@warden/ops-agent':
         specifier: workspace:*
         version: link:../demo/ops-agent

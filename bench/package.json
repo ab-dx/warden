@@ -7,10 +7,15 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "bench": "node --env-file-if-exists=../.env dist/run.js"
+    "bench": "node --env-file-if-exists=../.env dist/run.js",
+    "judge-eval": "node --env-file-if-exists=../.env dist/judge-eval.js"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "2.16.0",
     "@modelcontextprotocol/sdk": "1.32.2",
+    "@warden/contracts": "workspace:*",
+    "@warden/core": "workspace:*",
+    "@warden/judge-service": "workspace:*",
     "@warden/ops-agent": "workspace:*",
     "pg": "8.23.1",
     "yaml": "^2.9.1",
