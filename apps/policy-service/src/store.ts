@@ -27,6 +27,7 @@ create table if not exists evaluations (
   tool text not null,
   tier text not null,
   fingerprint text not null,
+  counterparty text,
   outcome text not null,
   reasons jsonb not null,
   mandate_id text references mandates (id),
@@ -35,6 +36,9 @@ create table if not exists evaluations (
 );
 create index if not exists evaluations_agent on evaluations (agent_id, created_at);
 create index if not exists evaluations_fingerprint on evaluations (agent_id, fingerprint, created_at);
+-- added after the first release, so older databases get it here
+alter table evaluations add column if not exists counterparty text;
+create index if not exists evaluations_counterparty on evaluations (agent_id, counterparty, created_at);
 
 create table if not exists reservations (
   id text primary key,
@@ -177,6 +181,17 @@ export class PolicyStore {
         [intent.agentId, intent.fingerprint, policy.duplicate_window_seconds],
       );
 
+      const payee = intent.counterparty?.toLowerCase();
+      const toPayee =
+        payee && intent.currency && policy.split_window_seconds > 0
+          ? await tx.query<{ used: string }>(
+              `select ${USED} as used from reservations r join evaluations e on e.call_id = r.call_id
+               where r.agent_id = $1 and e.counterparty = $2 and r.currency = $3 and ${LIVE}
+                 and r.created_at > now() - make_interval(secs => $4)`,
+              [intent.agentId, payee, intent.currency, policy.split_window_seconds],
+            )
+          : undefined;
+
       const facts: Facts = {
         tool: intent.tool,
         tier: intent.tier,
@@ -187,6 +202,7 @@ export class PolicyStore {
         dailyRemainingMinor: policy.daily_budget.minor - BigInt(daily.rows[0]?.used ?? 0),
         recentCalls: recent.rows[0]?.n ?? 0,
         duplicate: (dup.rows[0]?.n ?? 0) > 0,
+        payeeRecentMinor: BigInt(toPayee?.rows[0]?.used ?? 0),
       };
       const verdict = tighten(evaluate(policy, policies, facts), {
         outcome: intent.escalations?.length ? 'escalate' : 'allow',
@@ -213,14 +229,15 @@ export class PolicyStore {
         );
       }
       await tx.query(
-        `insert into evaluations (call_id, agent_id, tool, tier, fingerprint, outcome, reasons, mandate_id, reservation_id)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `insert into evaluations (call_id, agent_id, tool, tier, fingerprint, counterparty, outcome, reasons, mandate_id, reservation_id)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           intent.callId,
           intent.agentId,
           intent.tool,
           intent.tier,
           intent.fingerprint,
+          payee ?? null,
           verdict.outcome,
           JSON.stringify(verdict.reasons),
           mandate?.id ?? null,

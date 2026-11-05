@@ -11,7 +11,7 @@ agents:
     velocity: { max_calls: 3, per_seconds: 60, tiers: [T3] }
     duplicate_window_seconds: 300
     deny_counterparties: ["*@temp-mail.org"]
-    escalate_when: [NO_MANDATE, COUNTERPARTY_NOT_IN_MANDATE, OVER_MANDATE_PER_CALL_CAP, OVER_MANDATE_TOTAL]
+    escalate_when: [NO_MANDATE, COUNTERPARTY_NOT_IN_MANDATE, OVER_MANDATE_PER_CALL_CAP, OVER_MANDATE_TOTAL, SPLIT_PAYMENT]
 `);
 const policy = file.agents['ops-agent']!;
 const policies = compile(policy);
@@ -33,6 +33,7 @@ const ok: Facts = {
   dailyRemainingMinor: 30000n,
   recentCalls: 0,
   duplicate: false,
+  payeeRecentMinor: 0n,
 };
 const run = (over: Partial<Facts>) => evaluate(policy, policies, { ...ok, ...over });
 const codes = (over: Partial<Facts>) => run(over).reasons.map((r) => r.code);
@@ -71,6 +72,8 @@ describe('policy engine', () => {
     ['OVER_DAILY_BUDGET', { dailyRemainingMinor: 4000n }, { dailyRemainingMinor: 3999n }, 'deny'],
     ['VELOCITY_EXCEEDED', { recentCalls: 2 }, { recentCalls: 3 }, 'deny'],
     ['DUPLICATE_PAYMENT', { duplicate: false }, { duplicate: true }, 'deny'],
+    // 60.00 already paid to this payee: 40.00 more reaches the 100.00 cap, a cent more passes it
+    ['SPLIT_PAYMENT', { payeeRecentMinor: 6000n }, { payeeRecentMinor: 6001n }, 'escalate'],
     [
       'COUNTERPARTY_DENYLISTED',
       { counterparty: 'temp-mail.org@studio.example', mandate: undefined, tier: 'T1' },
@@ -88,6 +91,12 @@ describe('policy engine', () => {
       run({ counterparty: 'anyone@x.com', mandate: { ...ok.mandate!, counterparties: [] } })
         .outcome,
     ).toBe('allow');
+  });
+
+  it('leaves a first payment over the cap to the cap rule', () => {
+    expect(codes({ amountMinor: 10001n, payeeRecentMinor: 0n })).toEqual([
+      'OVER_MANDATE_PER_CALL_CAP',
+    ]);
   });
 
   it('velocity only counts the tiers it is configured for', () => {

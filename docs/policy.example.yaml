@@ -7,6 +7,8 @@ agents:
     daily_budget: { value: "500.00", currency: USD }
     velocity: { max_calls: 6, per_seconds: 60, tiers: [T3] }
     duplicate_window_seconds: 300
+    # payments to one payee in this window are added up against the mandate's per-payment cap
+    split_window_seconds: 3600
     deny_counterparties: ["*@temp-mail.org", "*@guerrillamail.com"]
     # these reasons go to the user for a decision; any other reason denies outright
     escalate_when:
@@ -14,6 +16,7 @@ agents:
       - COUNTERPARTY_NOT_IN_MANDATE
       - OVER_MANDATE_PER_CALL_CAP
       - OVER_MANDATE_TOTAL
+      - SPLIT_PAYMENT
   # the benchmark harness, same limits so its numbers describe the demo agent
   bench-agent:
     # tiers: T0 read, T1 write without money, T2 commits a customer, T3 money out
@@ -22,6 +25,8 @@ agents:
     daily_budget: { value: "500.00", currency: USD }
     velocity: { max_calls: 6, per_seconds: 60, tiers: [T3] }
     duplicate_window_seconds: 300
+    # payments to one payee in this window are added up against the mandate's per-payment cap
+    split_window_seconds: 3600
     deny_counterparties: ["*@temp-mail.org", "*@guerrillamail.com"]
     # these reasons go to the user for a decision; any other reason denies outright
     escalate_when:
@@ -29,3 +34,4 @@ agents:
       - COUNTERPARTY_NOT_IN_MANDATE
       - OVER_MANDATE_PER_CALL_CAP
       - OVER_MANDATE_TOTAL
+      - SPLIT_PAYMENT

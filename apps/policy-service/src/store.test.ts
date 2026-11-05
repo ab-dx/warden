@@ -16,6 +16,13 @@ agents:
     velocity: { max_calls: 5, per_seconds: 60, tiers: [T3] }
     duplicate_window_seconds: 300
     escalate_when: [NO_MANDATE, COUNTERPARTY_NOT_IN_MANDATE, OVER_MANDATE_PER_CALL_CAP, OVER_MANDATE_TOTAL]
+  split-agent:
+    max_per_call: { value: "150.00", currency: USD }
+    daily_budget: { value: "300.00", currency: USD }
+    velocity: { max_calls: 50, per_seconds: 60, tiers: [T3] }
+    duplicate_window_seconds: 300
+    split_window_seconds: 3600
+    escalate_when: [SPLIT_PAYMENT]
 `);
 
 let n = 0;
@@ -139,6 +146,27 @@ describe('PolicyStore', () => {
     await mandate({ expires_at: new Date(Date.now() - 1000) });
     const r = await store.evaluateAndReserve(payout());
     expect(r).toMatchObject({ outcome: 'escalate', reasons: [{ code: 'NO_MANDATE' }] });
+  });
+
+  it('holds payments to one payee that add up past the per-payment cap', async () => {
+    await mandate({ agent_id: 'split-agent', maxPerCallMinor: 5000n, maxTotalMinor: 100000n });
+    const pay = (amountMinor: bigint, counterparty = 'dev@studio.example') =>
+      store.evaluateAndReserve(payout({ agentId: 'split-agent', amountMinor, counterparty }));
+    // 20 + 30 is exactly the 50.00 cap, so both go through
+    expect((await pay(2000n)).outcome).toBe('allow');
+    const second = await pay(3000n);
+    expect(second.outcome).toBe('allow');
+    const third = await pay(100n);
+    expect(third).toMatchObject({ outcome: 'escalate', reasons: [{ code: 'SPLIT_PAYMENT' }] });
+    // the payee match ignores case, and another payee has its own sum
+    const fourth = await pay(100n, 'DEV@studio.example');
+    expect(fourth.outcome).toBe('escalate');
+    expect((await pay(100n, 'design@studio.example')).reasons.map((r) => r.code)).not.toContain(
+      'SPLIT_PAYMENT',
+    );
+    // released holds stop counting: with only the 20.00 left, 30.00 fits again
+    for (const r of [second, third, fourth]) await store.release(r.reservationId ?? '', 'rejected');
+    expect((await pay(3000n)).outcome).toBe('allow');
   });
 
   it('denies agents with no policy', async () => {

@@ -23,6 +23,8 @@ export type Facts = {
   dailyRemainingMinor: bigint;
   recentCalls: number;
   duplicate: boolean;
+  // live payments to this payee in the split window, not counting this one
+  payeeRecentMinor: bigint;
 };
 
 export type Verdict = { outcome: Outcome; reasons: Reason[] };
@@ -53,6 +55,12 @@ export function compile(policy: AgentPolicy): Record<string, string> {
       'context.velocity_applies && context.recent_calls >= context.velocity_max',
     ),
     DUPLICATE_PAYMENT: forbid('context.duplicate'),
+    // several payments to one payee that together pass the per-payment cap look like one
+    // payment split up to get under it. the first payment is left to the cap itself
+    SPLIT_PAYMENT: forbid(
+      'context.has_mandate && resource has amount && context.payee_recent > 0 && ' +
+        'context.payee_recent + resource.amount > context.mandate_max_per_call',
+    ),
   };
   policy.deny_counterparties.forEach((p, i) => {
     policies[`COUNTERPARTY_DENYLISTED#${i}`] = forbid(
@@ -65,7 +73,12 @@ export function compile(policy: AgentPolicy): Record<string, string> {
 const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
 
 export function evaluate(policy: AgentPolicy, policies: Record<string, string>, f: Facts): Verdict {
-  const amounts = [f.amountMinor, f.mandate?.remainingMinor, f.dailyRemainingMinor];
+  const amounts = [
+    f.amountMinor,
+    f.mandate?.remainingMinor,
+    f.dailyRemainingMinor,
+    f.payeeRecentMinor,
+  ];
   if (amounts.some((a) => a !== undefined && (a > MAX_SAFE || a < -MAX_SAFE))) {
     return deny('AMOUNT_INVALID', 'the amount is outside the range warden can check', 'policy');
   }
@@ -98,6 +111,7 @@ export function evaluate(policy: AgentPolicy, policies: Record<string, string>, 
       recent_calls: f.recentCalls,
       velocity_max: policy.velocity.max_calls,
       duplicate: f.duplicate,
+      payee_recent: Number(f.payeeRecentMinor),
     },
     policies: { staticPolicies: policies },
     entities: [{ uid: { type: 'Payment', id: 'call' }, attrs: resource, parents: [] }],
@@ -158,6 +172,8 @@ function message(code: string, f: Facts): string {
       return 'Too many payments in a short time. Wait before trying again.';
     case 'DUPLICATE_PAYMENT':
       return `An identical payment to ${who} was made moments ago. This looks like a repeat.`;
+    case 'SPLIT_PAYMENT':
+      return `${amt} to ${who} would bring recent payments to them to ${fmt(f.payeeRecentMinor + (f.amountMinor ?? 0n), f.currency)}, above the mandate's per-payment limit of ${fmt(f.mandate?.maxPerCallMinor, f.currency)}. This looks like one payment split up.`;
     case 'COUNTERPARTY_DENYLISTED':
       return `${who} is on the deny list.`;
     default:

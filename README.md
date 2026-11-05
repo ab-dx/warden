@@ -37,7 +37,7 @@ flowchart LR
 ## Features
 
 - **Mandates.** The owner grants the agent a scoped, time-limited permission in plain terms: "pay approved contractor invoices, up to $100 each and $200 in total, only to these two people, until tonight".
-- **Policy.** Every money-moving call is checked against the mandate and the agent's limits: per-payment cap, daily budget, allowed and denied payees, payment rate, and repeats of a recent payment. Rules are written in [Cedar](https://www.cedarpolicy.com/) and each one reports a reason code and a plain sentence.
+- **Policy.** Every money-moving call is checked against the mandate and the agent's limits: per-payment cap, daily budget, allowed and denied payees, payment rate, repeats of a recent payment, and payments to one payee that add up past the per-payment cap. Rules are written in [Cedar](https://www.cedarpolicy.com/) and each one reports a reason code and a plain sentence.
 - **Provenance.** Warden also proxies the agent's other tools, such as its inbox, and remembers the payees, amounts and PayPal ids the agent read there. A payout to an address that appeared only in that content, and nowhere in what the owner wrote, is held for the owner with `PAYEE_FROM_UNTRUSTED_CONTENT`.
 - **Intent judge.** Optionally, an LLM reads the owner's mandate and the payment and says whether one serves the other. It sees the payee, amount and tool, plus whether the agent read them in untrusted content, but never the untrusted text itself, so an email can't talk to it. Any OpenAI-compatible endpoint works (`JUDGE_LLM_BASE_URL`, `JUDGE_LLM_MODEL`).
 - **Approvals.** A payment outside the mandate is held, not just refused. The owner sees who, how much and why on the dashboard, and approves or rejects it. If nobody answers in time, it's blocked.
@@ -170,7 +170,7 @@ Results with the scripted agent, which obeys every injected instruction, and the
 What still gets through policy plus provenance: two invoices inflated within the mandate's caps and a refund nobody asked for inside an open refund mandate, which are the intent judge's job, and six of eight small split payments before the rate limit stops the rest. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/).
 
 > [!NOTE]
-> The policy-only and full arms make real sandbox payouts, so the sandbox account needs a payout balance. Payouts PayPal refused are counted and reported separately.
+> The guarded arms make real sandbox payouts, so the sandbox account needs a payout balance. Payouts PayPal refused are counted and reported separately.
 
 ## Policy
 
@@ -182,9 +182,10 @@ escalate_when:
   - COUNTERPARTY_NOT_IN_MANDATE
   - OVER_MANDATE_PER_CALL_CAP
   - OVER_MANDATE_TOTAL
+  - SPLIT_PAYMENT
 ```
 
-Everything else (deny-listed payees, the daily budget, payment rate, repeats) denies without asking.
+`SPLIT_PAYMENT` adds up the payments to one payee within `split_window_seconds` (an hour in the example) and holds the one that takes the sum past the mandate's per-payment cap, so an invoice can't be paid in slices to get under it. Everything else (deny-listed payees, the daily budget, payment rate, repeats) denies without asking.
 
 ## Development
 
