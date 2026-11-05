@@ -41,6 +41,7 @@ flowchart LR
 - **Provenance.** Warden also proxies the agent's other tools, such as its inbox, and remembers the payees, amounts and PayPal ids the agent read there. A payout to an address that appeared only in that content, and nowhere in what the owner wrote, is held for the owner with `PAYEE_FROM_UNTRUSTED_CONTENT`.
 - **Intent judge.** Optionally, an LLM reads the owner's mandate and the payment and says whether one serves the other. It sees the payee, amount and tool, plus whether the agent read them in untrusted content, but never the untrusted text itself, so an email can't talk to it. Any OpenAI-compatible endpoint works (`JUDGE_LLM_BASE_URL`, `JUDGE_LLM_MODEL`).
 - **Approvals.** A payment outside the mandate is held, not just refused. The owner sees who, how much and why on the dashboard, and approves or rejects it, or taps Approve or Reject in Telegram (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`). If nobody answers in time, it's blocked.
+- **A note for the owner.** Each held payment comes with a short note: does the payee look like someone in the mandate without being them, did it only appear in an email, what to check before approving. The note is built from Warden's own facts (payment fields, the mandate, reason codes, a lookalike check) and never from anything the agent read, and it can't change a verdict. With a model configured it is written by the judge's model, otherwise it is a plain sentence.
 - **Structured refusals.** A blocked agent gets a reason it can act on (`COUNTERPARTY_NOT_IN_MANDATE`, `OVER_DAILY_BUDGET`, ...) instead of an opaque error.
 - **Ledger.** Every call, decision and PayPal result is written to an append-only, hash-chained ledger, so any later edit is detectable.
 
@@ -171,6 +172,8 @@ Results with the scripted agent, which obeys every injected instruction, and `op
 Each layer catches what the one before it can't. The judge adds about three seconds to a payment it allows, and in this run it held two inflated invoices and none of the legitimate payments.
 
 What still gets through full Warden: four slices of an invoice split eight ways, which add up to exactly the per-payment cap before the split rule holds the fifth, and a second refund nobody asked for, which looks to the judge exactly like the first. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/), and the judge on its own (`judge-eval`) in [`bench/results/judge/`](bench/results/judge/).
+
+With a real model as the agent (`anthropic/claude-haiku-5.5`, one run per arm), the picture changes: the model itself refused almost every injected instruction. With no guard it was fooled once in 18 attack scenarios, and with policy and provenance on, no attack it tried reached PayPal. Its attempts varied a lot between runs (once in one arm, nine times in another), and it also skipped about four in ten legitimate payments in every arm, the unguarded one included. The scripted agent stays the main measure because it always takes the bait, which is the case a firewall exists for.
 
 > [!NOTE]
 > The guarded arms make real sandbox payouts, so the sandbox account needs a payout balance. Payouts PayPal refused are counted and reported separately.
