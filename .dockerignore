@@ -5,6 +5,7 @@
 !proto
 !demo
 !docs
+!bench/results
 !scripts
 !package.json
 !pnpm-lock.yaml

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
+import { Bench } from './bench.js';
 import { Mandates } from './mandates.js';
 import { Activity, Approvals, Evidence, Login } from './screens.js';
 
@@ -28,7 +29,13 @@ export function App() {
   if (me.isError) return <Login />;
 
   const callId = /^#\/calls\/(.+)$/.exec(hash)?.[1];
-  const page = callId ? 'call' : hash === '#/mandates' ? 'mandates' : 'home';
+  const page = callId
+    ? 'call'
+    : hash === '#/mandates'
+      ? 'mandates'
+      : hash === '#/bench'
+        ? 'bench'
+        : 'home';
   const tab = (href: string, label: string, here: boolean, count = 0) => (
     <a
       href={href}
@@ -49,11 +56,12 @@ export function App() {
   return (
     <div className="mx-auto max-w-[960px] px-4 pb-24 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pt-8 pb-3">
-        <div className="flex items-end gap-8">
+        <div className="flex items-end gap-5 sm:gap-8">
           <h1 className="text-2xl font-bold tracking-tight">Warden</h1>
-          <nav className="flex gap-6">
-            {tab('#/', 'Payments', page !== 'mandates', waiting)}
+          <nav className="flex gap-4 sm:gap-6">
+            {tab('#/', 'Payments', page === 'home' || page === 'call', waiting)}
             {tab('#/mandates', 'Mandates', page === 'mandates')}
+            {tab('#/bench', 'Benchmark', page === 'bench')}
           </nav>
         </div>
         <button
@@ -70,6 +78,7 @@ export function App() {
       <main className="mt-8 space-y-12">
         {page === 'call' && callId && <Evidence id={callId} back={() => (location.hash = '#/')} />}
         {page === 'mandates' && <Mandates />}
+        {page === 'bench' && <Bench />}
         {page === 'home' && (
           <>
             <Approvals />
