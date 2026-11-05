@@ -24,3 +24,22 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
+
+  # the same image build compose runs, so a broken .dockerignore or lockfile fails here
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - api
+          - edge-gateway
+          - guard-worker
+          - judge-service
+          - ledger-service
+          - ops-agent
+          - paypal-connector
+          - policy-service
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --build-arg APP=${{ matrix.app }} -t warden-${{ matrix.app }}:ci .
