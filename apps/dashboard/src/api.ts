@@ -1,3 +1,7 @@
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/browser';
 import type { Money } from './format.js';
 
 export type Reason = { code: string; message: string; check: string };
@@ -19,6 +23,8 @@ export type Approval = {
   call: Call;
   // warden's note for the owner, built from facts only; advice, not a verdict
   brief?: string;
+  // approving this one needs the owner's passkey
+  needsPasskey?: boolean;
   expiresAt: string | null;
   requestedAt: string | null;
 };
@@ -103,8 +109,15 @@ export const api = {
   mandateToken: (id: string) =>
     call<{ token: string; kid: string }>('GET', `/api/mandates/${id}/token`),
   draftMandate: (text: string) => call<Draft>('POST', '/api/mandates/draft', { text }),
-  decide: (callId: string, approved: boolean) =>
-    call<void>('POST', `/api/approvals/${callId}`, { approved }),
+  // passkey: the webauthn assertion, for an approval above the owner's step-up line
+  decide: (callId: string, approved: boolean, passkey?: unknown) =>
+    call<void>('POST', `/api/approvals/${callId}`, { approved, passkey }),
+  approvalChallenge: (callId: string) =>
+    call<PublicKeyCredentialRequestOptionsJSON>('POST', `/api/approvals/${callId}/passkey`),
+  passkeyStatus: () => call<{ required: boolean; registered: boolean }>('GET', '/api/passkey'),
+  passkeyOptions: () =>
+    call<PublicKeyCredentialCreationOptionsJSON>('POST', '/api/passkey/register/options'),
+  passkeyRegister: (response: unknown) => call<void>('POST', '/api/passkey/register', response),
   calls: () => call<Call[]>('GET', '/api/calls?limit=40'),
   call: (id: string) => call<{ call: Call; entries: Entry[] }>('GET', `/api/calls/${id}`),
   verify: () =>

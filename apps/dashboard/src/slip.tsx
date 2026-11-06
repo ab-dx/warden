@@ -1,3 +1,4 @@
+import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { type Approval, api } from './api.js';
@@ -17,7 +18,12 @@ export function Slip({ a }: { a: Approval }) {
   const qc = useQueryClient();
   const now = useNow();
   const decide = useMutation({
-    mutationFn: (approved: boolean) => api.decide(a.call.callId, approved),
+    mutationFn: async (approved: boolean) => {
+      if (!approved || !a.needsPasskey) return api.decide(a.call.callId, approved);
+      // big approvals: the owner proves it's them, for this payment only
+      const optionsJSON = await api.approvalChallenge(a.call.callId);
+      return api.decide(a.call.callId, true, await startAuthentication({ optionsJSON }));
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['approvals'] });
       qc.invalidateQueries({ queryKey: ['calls'] });
@@ -92,7 +98,7 @@ export function Slip({ a }: { a: Approval }) {
             onClick={() => decide.mutate(true)}
             className="rounded-sm bg-ink px-4 py-2 font-medium text-sheet hover:bg-ink/90 disabled:opacity-50"
           >
-            Approve payment
+            {a.needsPasskey ? 'Approve with passkey' : 'Approve payment'}
           </button>
         </div>
       </div>

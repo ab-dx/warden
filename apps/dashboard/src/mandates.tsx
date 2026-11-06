@@ -1,3 +1,4 @@
+import { startRegistration } from '@simplewebauthn/browser';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { api, type Mandate } from './api.js';
@@ -91,6 +92,40 @@ function Row({ m }: { m: Mandate }) {
   );
 }
 
+// shown when approvals can need a passkey and the owner hasn't set one up yet
+function PasskeySetup() {
+  const qc = useQueryClient();
+  const status = useQuery({ queryKey: ['passkey'], queryFn: api.passkeyStatus });
+  const setup = useMutation({
+    mutationFn: async () =>
+      api.passkeyRegister(await startRegistration({ optionsJSON: await api.passkeyOptions() })),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['passkey'] }),
+  });
+  if (!status.data?.required || status.data.registered) return null;
+  return (
+    <div className="rounded-sm border border-held bg-sheet p-4">
+      <p className="font-medium">Set up a passkey for big approvals</p>
+      <p className="text-sm text-ink-soft">
+        Approving a payment above your step-up limit needs a passkey, so a stolen session or chat
+        can't approve it. Until you set one up, those approvals are blocked.
+      </p>
+      <button
+        type="button"
+        onClick={() => setup.mutate()}
+        disabled={setup.isPending}
+        className="mt-2 rounded-sm bg-ink px-3 py-1.5 text-sm font-medium text-sheet disabled:opacity-50"
+      >
+        Set up passkey
+      </button>
+      {setup.isError && (
+        <p role="alert" className="mt-1 text-sm text-refused">
+          {(setup.error as Error).message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function Mandates() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['mandates'], queryFn: api.mandates, refetchInterval: 5000 });
@@ -145,6 +180,7 @@ export function Mandates() {
 
   return (
     <section className="space-y-8">
+      <PasskeySetup />
       <div>
         <h2 className="text-lg font-semibold">What your agent may do</h2>
         <p className="text-ink-soft">

@@ -94,6 +94,14 @@ describe('telegram approvals', () => {
     expect(sent.find((s) => s.method === 'answerCallbackQuery')?.body.text).toMatch(/Too late/);
   });
 
+  it('sends a big approval back to the dashboard, and keeps the buttons for a reject', async () => {
+    const { t, sent, tap } = setup({ result: 'needs_passkey' });
+    tap(`a:${CALL}`);
+    await t.answer(0);
+    expect(sent.find((s) => s.method === 'answerCallbackQuery')?.body.text).toMatch(/passkey/);
+    expect(sent.some((s) => s.method === 'editMessageReplyMarkup')).toBe(false);
+  });
+
   it('moves past updates it has seen', async () => {
     const { t, sent, tap } = setup();
     tap(`a:${CALL}`, OWNER, 41);

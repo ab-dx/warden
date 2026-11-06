@@ -15,6 +15,8 @@ services:
     ports: !reset []
     environment:
       COOKIE_SECURE: "true"
+      # passkeys are bound to the site they were made on
+      PASSKEY_ORIGIN: https://${WARDEN_DOMAIN}
 
   # caddy gets and renews the certificate for WARDEN_DOMAIN by itself
   caddy:

@@ -87,6 +87,15 @@ export function telegramApprovals(opts: {
       if (!m?.[2]) continue;
       const approved = m[1] === 'a';
       const r = await opts.decide(m[2], approved, `telegram:${q.from.username ?? q.from.id}`);
+      if (r === 'needs_passkey') {
+        // keep the buttons: rejecting from here is still fine
+        await opts.bot('answerCallbackQuery', {
+          callback_query_id: q.id,
+          text: 'This one needs your passkey. Approve it on the dashboard.',
+          show_alert: true,
+        });
+        continue;
+      }
       const result =
         r === 'sent'
           ? approved

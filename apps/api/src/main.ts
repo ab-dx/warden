@@ -7,12 +7,13 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Connection, Client as TemporalClient } from '@temporalio/client';
 import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry';
 import { LedgerService, PolicyService } from '@warden/contracts';
-import { signingKey, signReceipt } from '@warden/core';
+import { signingKey, signReceipt, toMinor } from '@warden/core';
 import { internalClient } from '@warden/service-kit';
 import { z } from 'zod';
 import { decide, pendingApprovals } from './approvals.js';
 import { briefs, chat } from './brief.js';
 import { ApiController, DEPS, type Deps, SessionController } from './http.js';
+import { passkeys } from './passkey.js';
 import { sessions } from './session.js';
 import { botApi, startTelegram, telegramApprovals } from './telegram.js';
 import { receiptClaims } from './token.js';
@@ -47,6 +48,14 @@ const env = z
     JUDGE_LLM_API_KEY: z.string().optional(),
     // a 32-byte base64url ed25519 seed; set it to sign mandates as verifiable tokens
     MANDATE_SIGNING_KEY: z.string().optional(),
+    // approving a payment above this (USD) needs the owner's passkey; unset turns it off
+    PASSKEY_ABOVE: z
+      .string()
+      .regex(/^\d+(\.\d{2})?$/)
+      .optional(),
+    // where the dashboard is served; passkeys are bound to it
+    PASSKEY_ORIGIN: z.string().default('http://localhost:7005'),
+    PASSKEY_FILE: z.string().default('passkey.json'),
     DASHBOARD_DIR: z
       .string()
       .default(fileURLToPath(new URL('../../dashboard/dist', import.meta.url))),
@@ -87,6 +96,12 @@ const deps: Deps = {
   complete,
   signing: c.MANDATE_SIGNING_KEY ? signingKey(c.MANDATE_SIGNING_KEY) : undefined,
 };
+if (c.PASSKEY_ABOVE)
+  deps.passkeys = passkeys({
+    file: c.PASSKEY_FILE,
+    origin: c.PASSKEY_ORIGIN,
+    aboveMinor: toMinor({ value: c.PASSKEY_ABOVE, currency: 'USD' }),
+  });
 const signing = deps.signing;
 if (signing)
   // the call as the owner saw it, signed with their answer
@@ -146,8 +161,14 @@ if (c.TELEGRAM_BOT_TOKEN && c.TELEGRAM_CHAT_ID !== undefined) {
             brief: await deps.brief(p.call),
           })),
         ),
-      decide: async (callId, approved, by) =>
-        decide(temporal, callId, approved, by, await deps.receipt?.(callId, approved, by)),
+      decide: async (callId, approved, by) => {
+        // a tap in a chat is not a passkey; big approvals go back to the dashboard
+        if (deps.passkeys) {
+          const { call } = await ledger.getCall({ callId });
+          if (!call || deps.passkeys.needs(call, approved)) return 'needs_passkey';
+        }
+        return decide(temporal, callId, approved, by, await deps.receipt?.(callId, approved, by));
+      },
     }),
     (msg) => Logger.warn(msg, 'telegram'),
   );

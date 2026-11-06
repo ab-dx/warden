@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ApiController, DEPS, type Deps, SessionController } from './http.js';
+import { needsPasskey } from './passkey.js';
 import { sessions } from './session.js';
 
 let base: string;
@@ -10,6 +11,8 @@ let close: () => Promise<void>;
 const revoked: string[] = [];
 const signals: unknown[] = [];
 let waitingStatus = 'awaiting_approval';
+let callAmount = '50.00';
+let passkeyRegistered = true;
 
 beforeAll(async () => {
   const temporal = {
@@ -28,7 +31,18 @@ beforeAll(async () => {
       user: 'priya',
       ttlMs: 60_000,
     }),
-    ledger: {} as never,
+    ledger: {
+      getCall: async () => ({
+        call: { callId: 'c_1', amount: { value: callAmount, currency: 'USD' } },
+        entries: [],
+      }),
+    } as never,
+    passkeys: {
+      needs: (call: { amount?: { value: string; currency: string } }, approved: boolean) =>
+        needsPasskey(call as never, approved, 10000n),
+      registered: () => passkeyRegistered,
+      check: async (_id: string, assertion: unknown) => assertion === 'good',
+    } as never,
     policy: {
       revokeMandate: async ({ mandateId }: { mandateId: string }) => {
         revoked.push(mandateId);
@@ -94,6 +108,21 @@ describe('approvals over http', () => {
     });
     expect(r.status).toBe(200);
     expect(revoked).toEqual(['m_1']);
+  });
+
+  it('needs the passkey to approve a big payment, but not to reject it', async () => {
+    callAmount = '250.00';
+    const { cookie } = await signIn();
+    const headers = { ...json, cookie: cookie ?? '' };
+    expect((await approve(headers)).status).toBe(428);
+    expect((await approve(headers, '{"approved":true,"passkey":"forged"}')).status).toBe(403);
+    passkeyRegistered = false;
+    expect((await approve(headers, '{"approved":true,"passkey":"good"}')).status).toBe(403);
+    passkeyRegistered = true;
+    expect((await approve(headers, '{"approved":false}')).status).toBe(202);
+    expect((await approve(headers, '{"approved":true,"passkey":"good"}')).status).toBe(202);
+    callAmount = '50.00';
+    signals.length = 0;
   });
 
   it('records who approved', async () => {

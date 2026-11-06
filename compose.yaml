@@ -275,6 +275,10 @@ services:
     environment:
       <<: *internal
       DASHBOARD_DIR: /app/dashboard
+      PASSKEY_FILE: /home/nonroot/passkey.json
+    # the owner's passkey; mounted on the non-root home so the volume starts out writable
+    volumes:
+      - api:/home/nonroot
     depends_on:
       <<: *infra
       policy-service: { condition: service_healthy }
@@ -292,6 +296,7 @@ services:
       }
 
 volumes:
+  api:
   prometheus:
   ollama:
   postgres:

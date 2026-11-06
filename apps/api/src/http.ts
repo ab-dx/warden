@@ -34,6 +34,7 @@ import { z } from 'zod';
 import { decide, type Ledger, pendingApprovals } from './approvals.js';
 import type { Complete } from './brief.js';
 import { draftMandate } from './draft.js';
+import type { Passkeys } from './passkey.js';
 import type { Sessions } from './session.js';
 import { today } from './stats.js';
 import { mandateClaims } from './token.js';
@@ -53,6 +54,8 @@ export type Deps = {
   signing?: ReturnType<typeof signingKey> | undefined;
   // signs the owner's answer on a held call, for the ledger; unset without a signing key
   receipt?: ((callId: string, approved: boolean, by: string) => Promise<string>) | undefined;
+  // passkey step-up for approvals above a threshold; unset when PASSKEY_ABOVE isn't
+  passkeys?: Passkeys | undefined;
 };
 
 const COOKIE = 'warden_session';
@@ -127,7 +130,8 @@ export class SessionController {
   }
 }
 
-const decision = z.object({ approved: z.boolean() });
+// passkey: the browser's webauthn assertion, when the approval needs one
+const decision = z.object({ approved: z.boolean(), passkey: z.unknown().optional() });
 const draftInput = z.object({ text: z.string().trim().min(1).max(1000) });
 
 const newMandate = z.object({
@@ -180,10 +184,53 @@ export class ApiController {
       rows.map(async (r) => ({
         call: toJson(CallSummarySchema, r.call),
         brief: await this.deps.brief(r.call),
+        needsPasskey: this.deps.passkeys?.needs(r.call, true) ?? false,
         expiresAt: r.expiresAt ?? null,
         requestedAt: r.requestedAt ? timestampDate(r.requestedAt).toISOString() : null,
       })),
     );
+  }
+
+  // whether approvals can need a passkey, and whether the owner has set one up
+  @Get('passkey')
+  passkeyStatus() {
+    const pk = this.deps.passkeys;
+    return { required: pk !== undefined, registered: pk?.registered() ?? false };
+  }
+
+  @Post('passkey/register/options')
+  async passkeyOptions() {
+    const pk = this.deps.passkeys;
+    if (!pk) throw new HttpException('passkeys are not turned on (PASSKEY_ABOVE)', 404);
+    try {
+      return await pk.registerOptions();
+    } catch (err) {
+      throw new HttpException((err as Error).message, 409);
+    }
+  }
+
+  @Post('passkey/register')
+  async passkeyRegister(@Body() body: unknown) {
+    const pk = this.deps.passkeys;
+    if (!pk) throw new HttpException('passkeys are not turned on (PASSKEY_ABOVE)', 404);
+    try {
+      await pk.register(body);
+    } catch (err) {
+      throw new HttpException((err as Error).message, 400);
+    }
+    return { registered: true };
+  }
+
+  // a challenge for this one call, so an assertion can't be replayed to approve another
+  @Post('approvals/:callId/passkey')
+  async approvalChallenge(@Param('callId') callId: string) {
+    const pk = this.deps.passkeys;
+    if (!pk) throw new HttpException('passkeys are not turned on (PASSKEY_ABOVE)', 404);
+    try {
+      return await pk.challengeFor(callId);
+    } catch (err) {
+      throw new HttpException((err as Error).message, 409);
+    }
   }
 
   @Post('approvals/:callId')
@@ -192,6 +239,19 @@ export class ApiController {
     const parsed = decision.safeParse(body);
     if (!parsed.success)
       throw new HttpException('send { "approved": true } or { "approved": false }', 400);
+    const pk = this.deps.passkeys;
+    if (pk) {
+      const { call } = await rpc(this.deps.ledger.getCall({ callId }));
+      if (!call) throw new HttpException(`no call ${callId}`, 404);
+      if (pk.needs(call, parsed.data.approved)) {
+        if (!pk.registered())
+          throw new HttpException('Approving this needs a passkey. Set one up first.', 403);
+        if (parsed.data.passkey === undefined)
+          throw new HttpException('Approving this needs your passkey.', 428);
+        if (!(await pk.check(callId, parsed.data.passkey)))
+          throw new HttpException('That passkey check did not pass.', 403);
+      }
+    }
     const by = `dashboard:${req.user}`;
     const r = await decide(
       this.deps.temporal,

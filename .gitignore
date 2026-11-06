@@ -10,3 +10,6 @@ coverage/
 *.log
 .seed/
 packages/contracts/src/gen/
+
+# the owner passkey when the api runs on the host
+passkey.json

@@ -35,7 +35,8 @@ export async function pendingApprovals(ledger: Ledger, temporal: TemporalClient)
   return out;
 }
 
-export type Decided = 'sent' | 'not_waiting';
+// needs_passkey: the approval is too big to give without the owner's passkey
+export type Decided = 'sent' | 'not_waiting' | 'needs_passkey';
 
 export async function decide(
   temporal: TemporalClient,
