@@ -9,6 +9,7 @@
     "test": "vitest run",
     "bench": "node --env-file-if-exists=../.env dist/run.js",
     "judge-eval": "node --env-file-if-exists=../.env dist/judge-eval.js",
+    "reviewer-eval": "node --env-file-if-exists=../.env dist/reviewer-eval.js",
     "redteam": "node --env-file-if-exists=../.env dist/redteam.js"
   },
   "dependencies": {
