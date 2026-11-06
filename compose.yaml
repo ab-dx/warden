@@ -26,6 +26,10 @@ x-internal: &internal
   LEDGER_URL: http://ledger-service:7004
   # GUARD_JUDGE_URL= (set and empty) runs payments through policy alone
   JUDGE_URL: ${GUARD_JUDGE_URL-http://judge-service:7006}
+  # traces to jaeger, metrics to prometheus (the obs profile); unset either to turn it off
+  NODE_OPTIONS: --import @warden/service-kit/telemetry
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_TRACES_ENDPOINT-http://jaeger:4318/v1/traces}
+  OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: ${OTEL_METRICS_ENDPOINT-http://prometheus:9090/api/v1/otlp/v1/metrics}
 
 services:
   postgres:
