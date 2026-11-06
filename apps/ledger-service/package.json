@@ -20,6 +20,7 @@
     "@nestjs/common": "12.3.2",
     "@nestjs/core": "12.3.2",
     "@nestjs/platform-express": "12.3.2",
+    "@opentelemetry/api": "1.10.0",
     "@warden/contracts": "workspace:*",
     "@warden/outbox": "workspace:*",
     "@warden/service-kit": "workspace:*",

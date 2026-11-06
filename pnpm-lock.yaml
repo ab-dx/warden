@@ -495,6 +495,9 @@ importers:
       '@nestjs/platform-express':
         specifier: 12.3.2
         version: 12.3.2(@nestjs/common@12.3.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.3.2)(supports-color@8.1.1)
+      '@opentelemetry/api':
+        specifier: 1.10.0
+        version: 1.10.0
       '@warden/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

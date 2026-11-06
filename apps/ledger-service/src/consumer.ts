@@ -1,8 +1,9 @@
 import { fromBinary } from '@bufbuild/protobuf';
 import { KafkaJS } from '@confluentinc/kafka-javascript';
-import { EventSchema } from '@warden/contracts';
+import { type Event, EventSchema } from '@warden/contracts';
 import { consumed, handleOnce, topicFor } from '@warden/outbox';
 import type pg from 'pg';
+import { record } from './metrics.js';
 import { append } from './store.js';
 
 export const TOPICS = ['calls', 'decisions', 'approvals', 'payments', 'untrusted-content'].map(
@@ -36,10 +37,22 @@ export async function startConsumer(opts: {
       if (!event.eventId)
         return opts.onSkip(`event without id at ${topic}/${partition}@${message.offset}`);
       const id = event.eventId;
-      await consumed(message.headers, `ledger ${event.payload.case}`, () =>
+      const fresh = await consumed(message.headers, `ledger ${event.payload.case}`, () =>
         handleOnce(opts.pool, opts.groupId, id, (tx) => append(tx, event)),
       );
+      // count each event once, so a redelivery doesn't inflate the numbers
+      if (fresh) record(event, await receivedAt(opts.pool, event));
     },
   });
   return { stop: () => consumer.disconnect() };
+}
+
+// when the agent asked, for timing a decision; the calls row was written by callReceived
+async function receivedAt(pool: pg.Pool, event: Event) {
+  if (event.payload.case !== 'decisionMade') return undefined;
+  const { rows } = await pool.query<{ received_at: Date | null }>(
+    'select received_at from calls where call_id = $1',
+    [event.payload.value.callId],
+  );
+  return rows[0]?.received_at ?? undefined;
 }
