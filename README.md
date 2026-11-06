@@ -160,7 +160,7 @@ With Cursor, in `.cursor/mcp.json`:
 docker compose -f compose.yaml -f deploy/compose/public.yaml --profile app up -d --build --wait
 ```
 
-The dashboard is then at `https://<domain>/` and agents connect to `https://<domain>/mcp`. The running stack uses about 1.3 GB of memory; building the images takes more, so 4 GB is comfortable.
+The dashboard is then at `https://<domain>/` and agents connect to `https://<domain>/mcp`. The running stack uses about 1.8 GB of memory (2.4 GB with the `obs` profile); building the images takes more, so 4 GB is comfortable.
 
 ## The demo
 
