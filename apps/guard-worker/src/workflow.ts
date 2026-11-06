@@ -112,6 +112,7 @@ export async function paymentGuard(input: GuardInput): Promise<GuardResult> {
       callId,
       approved,
       by: decision?.by ?? 'timeout',
+      receipt: decision?.receipt,
     });
   }
 

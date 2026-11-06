@@ -7,7 +7,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Connection, Client as TemporalClient } from '@temporalio/client';
 import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry';
 import { LedgerService, PolicyService } from '@warden/contracts';
-import { signingKey } from '@warden/core';
+import { signingKey, signReceipt } from '@warden/core';
 import { internalClient } from '@warden/service-kit';
 import { z } from 'zod';
 import { decide, pendingApprovals } from './approvals.js';
@@ -15,6 +15,7 @@ import { briefs, chat } from './brief.js';
 import { ApiController, DEPS, type Deps, SessionController } from './http.js';
 import { sessions } from './session.js';
 import { botApi, startTelegram, telegramApprovals } from './telegram.js';
+import { receiptClaims } from './token.js';
 
 const env = z
   .object({
@@ -86,6 +87,14 @@ const deps: Deps = {
   complete,
   signing: c.MANDATE_SIGNING_KEY ? signingKey(c.MANDATE_SIGNING_KEY) : undefined,
 };
+const signing = deps.signing;
+if (signing)
+  // the call as the owner saw it, signed with their answer
+  deps.receipt = async (callId, approved, by) => {
+    const { call } = await deps.ledger.getCall({ callId });
+    if (!call) throw new Error(`no call ${callId} in the ledger`);
+    return signReceipt(receiptClaims(call, approved, by), signing);
+  };
 
 @Module({
   controllers: [SessionController, ApiController],
@@ -137,7 +146,8 @@ if (c.TELEGRAM_BOT_TOKEN && c.TELEGRAM_CHAT_ID !== undefined) {
             brief: await deps.brief(p.call),
           })),
         ),
-      decide: (callId, approved, by) => decide(temporal, callId, approved, by),
+      decide: async (callId, approved, by) =>
+        decide(temporal, callId, approved, by, await deps.receipt?.(callId, approved, by)),
     }),
     (msg) => Logger.warn(msg, 'telegram'),
   );

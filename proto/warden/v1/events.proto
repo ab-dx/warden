@@ -61,6 +61,9 @@ message ApprovalResolved {
   string approval_id = 2;
   bool approved = 3;
   string resolved_by = 4;
+  // the owner's answer signed when given (a compact jws, see /.well-known/jwks.json); empty
+  // for a timeout, or when no signing key is configured
+  string receipt = 5;
 }
 
 message PaymentExecuted {

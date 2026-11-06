@@ -28,7 +28,7 @@ export type Forwarded = {
   errorCode?: string | undefined;
 };
 
-export type Decision = { approved: boolean; by: string };
+export type Decision = { approved: boolean; by: string; receipt?: string | undefined };
 
 export type GuardDecidedBy = 'policy' | 'judge' | 'human' | 'timeout';
 
@@ -41,7 +41,13 @@ export type GuardResult = {
 
 export type GuardEvent =
   | { kind: 'approvalRequested'; callId: string; reasons: GuardReason[]; expiresAt: string }
-  | { kind: 'approvalResolved'; callId: string; approved: boolean; by: string }
+  | {
+      kind: 'approvalResolved';
+      callId: string;
+      approved: boolean;
+      by: string;
+      receipt?: string | undefined;
+    }
   | {
       kind: 'decisionMade';
       callId: string;

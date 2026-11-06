@@ -168,7 +168,7 @@ function stepDetail(type: string, dataJson: string): string {
   const v = d[type] ?? {};
   switch (type) {
     case 'approvalResolved':
-      return `${v.approved ? 'Approved' : 'Rejected'} ${via(String(v.resolvedBy ?? ''))}`;
+      return `${v.approved ? 'Approved' : 'Rejected'} ${via(String(v.resolvedBy ?? ''))}${v.receipt ? ', with a signed receipt' : ''}`;
     case 'decisionMade':
       return `${v.outcome === 'OUTCOME_ALLOW' ? 'Allowed' : 'Blocked'}, decided by ${String(
         v.decidedBy ?? 'policy',

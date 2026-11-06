@@ -51,6 +51,8 @@ export type Deps = {
   complete?: Complete | undefined;
   // signs mandates as tokens anyone can verify; unset when no signing key is configured
   signing?: ReturnType<typeof signingKey> | undefined;
+  // signs the owner's answer on a held call, for the ledger; unset without a signing key
+  receipt?: ((callId: string, approved: boolean, by: string) => Promise<string>) | undefined;
 };
 
 const COOKIE = 'warden_session';
@@ -190,11 +192,13 @@ export class ApiController {
     const parsed = decision.safeParse(body);
     if (!parsed.success)
       throw new HttpException('send { "approved": true } or { "approved": false }', 400);
+    const by = `dashboard:${req.user}`;
     const r = await decide(
       this.deps.temporal,
       callId,
       parsed.data.approved,
-      `dashboard:${req.user}`,
+      by,
+      await this.deps.receipt?.(callId, parsed.data.approved, by),
     );
     if (r === 'not_waiting')
       throw new HttpException('This payment is no longer waiting for a decision.', 409);

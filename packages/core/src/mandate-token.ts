@@ -26,6 +26,39 @@ export type MandateClaims = {
   currency: string;
   iat: number;
   exp: number;
+  // the same grant in the shape of an ap2 intent mandate, so ap2-speaking merchants and
+  // agents can read it. the caps above have no ap2 field, so they stay warden's own claims
+  intent_mandate: {
+    natural_language_description: string;
+    // who may be paid; null means anyone
+    merchants: string[] | null;
+    skus: null;
+    // within the mandate the agent pays without asking again
+    user_cart_confirmation_required: false;
+    intent_expiry: string;
+  };
+};
+
+// the owner's answer on one held payment, signed when they gave it: shaped like an ap2
+// payment mandate, and kept in the ledger as proof of exactly what was approved
+export type ApprovalReceipt = {
+  iss: 'warden';
+  kind: 'approval';
+  // the call id
+  jti: string;
+  // the agent that asked
+  sub: string;
+  approved: boolean;
+  // "dashboard:owner", "telegram:12345"
+  by: string;
+  payment_mandate_contents: {
+    payment_mandate_id: string;
+    payment_details_id: string;
+    payment_details_total: { label: string; amount: { currency: string; value: string } };
+    merchant_agent: string;
+    timestamp: string;
+  };
+  iat: number;
 };
 
 const b64 = (b: Buffer | string) => Buffer.from(b).toString('base64url');
@@ -52,19 +85,17 @@ export function signingKey(seed: string) {
   };
 }
 
-export function signMandate(claims: MandateClaims, key: { privateKey: KeyObject; kid: string }) {
+type Key = { privateKey: KeyObject; kid: string };
+
+function signJws(claims: object, key: Key) {
   const head = b64(JSON.stringify({ alg: 'EdDSA', typ: 'JWT', kid: key.kid }));
   const body = b64(JSON.stringify(claims));
   const sig = sign(null, Buffer.from(`${head}.${body}`), key.privateKey);
   return `${head}.${body}.${b64(sig)}`;
 }
 
-// throws unless the token is well formed, ed25519-signed by this key, from warden, and unexpired
-export function verifyMandate(
-  token: string,
-  publicKey: KeyObject,
-  now = Date.now(),
-): MandateClaims {
+// the claims of a well-formed, ed25519-signed token from warden; throws otherwise
+function readJws(token: string, publicKey: KeyObject): Record<string, unknown> {
   const [head, body, sig, extra] = token.split('.');
   if (!head || !body || !sig || extra !== undefined) throw new Error('not a compact jws');
   const header = JSON.parse(Buffer.from(head, 'base64url').toString()) as { alg?: string };
@@ -72,8 +103,24 @@ export function verifyMandate(
   if (header.alg !== 'EdDSA') throw new Error(`unexpected alg ${header.alg}`);
   if (!verify(null, Buffer.from(`${head}.${body}`), publicKey, Buffer.from(sig, 'base64url')))
     throw new Error('bad signature');
-  const claims = JSON.parse(Buffer.from(body, 'base64url').toString()) as MandateClaims;
+  const claims = JSON.parse(Buffer.from(body, 'base64url').toString()) as Record<string, unknown>;
   if (claims.iss !== 'warden') throw new Error('not issued by warden');
+  return claims;
+}
+
+export const signMandate = (claims: MandateClaims, key: Key) => signJws(claims, key);
+export const signReceipt = (claims: ApprovalReceipt, key: Key) => signJws(claims, key);
+
+// throws unless the token is a valid, unexpired mandate signed by this key
+export function verifyMandate(token: string, publicKey: KeyObject, now = Date.now()) {
+  const claims = readJws(token, publicKey) as MandateClaims;
   if (!(claims.exp * 1000 > now)) throw new Error('mandate token expired');
   return claims;
+}
+
+// a receipt records a past answer, so it never expires; it only has to be genuine
+export function verifyReceipt(token: string, publicKey: KeyObject) {
+  const claims = readJws(token, publicKey) as Partial<ApprovalReceipt>;
+  if (claims.kind !== 'approval') throw new Error('not an approval receipt');
+  return claims as ApprovalReceipt;
 }

@@ -1,8 +1,8 @@
 import { create } from '@bufbuild/protobuf';
 import { timestampFromMs } from '@bufbuild/protobuf/wkt';
-import { MandateSchema, MandateStatus } from '@warden/contracts';
+import { CallSummarySchema, MandateSchema, MandateStatus } from '@warden/contracts';
 import { describe, expect, it } from 'vitest';
-import { mandateClaims } from './token.js';
+import { mandateClaims, receiptClaims } from './token.js';
 
 const NOW = Date.parse('2026-11-06T12:00:00Z');
 const mandate = (status = MandateStatus.ACTIVE) =>
@@ -32,11 +32,44 @@ describe('mandateClaims', () => {
       currency: 'USD',
       iat: NOW / 1000,
       exp: NOW / 1000 + 4 * 3600,
+      intent_mandate: {
+        natural_language_description: 'Pay Arjun up to $100',
+        merchants: ['arjun@mehta-dev.example'],
+        skus: null,
+        user_cart_confirmation_required: false,
+        intent_expiry: new Date(NOW + 4 * 3600_000).toISOString(),
+      },
     });
   });
 
   it('gives nothing for a revoked or expired mandate', () => {
     expect(mandateClaims(mandate(MandateStatus.REVOKED), NOW)).toBeUndefined();
     expect(mandateClaims(mandate(MandateStatus.EXPIRED), NOW)).toBeUndefined();
+  });
+});
+
+describe('receiptClaims', () => {
+  it('records exactly the payment answered, who answered, and when', () => {
+    const call = create(CallSummarySchema, {
+      callId: 'c_1',
+      agentId: 'ops-agent',
+      tool: 'send_payout',
+      amount: { value: '120.00', currency: 'USD' },
+      counterparty: 'lena@ortiz.example',
+    });
+    expect(receiptClaims(call, true, 'telegram:42', NOW)).toMatchObject({
+      kind: 'approval',
+      jti: 'c_1',
+      approved: true,
+      by: 'telegram:42',
+      payment_mandate_contents: {
+        payment_details_total: {
+          label: 'send_payout',
+          amount: { currency: 'USD', value: '120.00' },
+        },
+        merchant_agent: 'lena@ortiz.example',
+        timestamp: '2026-11-06T12:00:00.000Z',
+      },
+    });
   });
 });

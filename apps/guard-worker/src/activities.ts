@@ -172,7 +172,13 @@ function toPayload(e: GuardEvent) {
     case 'approvalResolved':
       return {
         case: e.kind,
-        value: { callId: e.callId, approvalId: e.callId, approved: e.approved, resolvedBy: e.by },
+        value: {
+          callId: e.callId,
+          approvalId: e.callId,
+          approved: e.approved,
+          resolvedBy: e.by,
+          receipt: e.receipt ?? '',
+        },
       } as const;
     case 'decisionMade':
       return {

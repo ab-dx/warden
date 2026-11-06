@@ -42,8 +42,9 @@ export async function decide(
   callId: string,
   approved: boolean,
   by: string,
+  receipt?: string,
 ): Promise<Decided> {
   if (!(await waiting(temporal, callId))) return 'not_waiting';
-  await temporal.workflow.getHandle(callId).signal('decide', { approved, by });
+  await temporal.workflow.getHandle(callId).signal('decide', { approved, by, receipt });
   return 'sent';
 }
