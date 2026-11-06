@@ -56,6 +56,33 @@ describe('provenance', () => {
     );
   });
 
+  it('holds an amount from an email that is more than the user wrote, and names the email', async () => {
+    const pay = (value: string) =>
+      judgeService((id) => seen(pool, id)).assess(
+        {
+          intent: create(PaymentIntentSchema, {
+            sessionId: 's1',
+            counterparty: 'arjun@mehta.example',
+            amount: { value, currency: 'USD' },
+            tool: 'send_payout',
+            tier: Tier.MONEY_OUT,
+          }),
+          mandates: [
+            create(MandateSchema, {
+              task: "pay arjun's $40 invoice",
+              counterparties: ['arjun@mehta.example'],
+            }),
+          ],
+        } as never,
+        {} as never,
+      );
+    const inflated = await pay('96.00');
+    expect(inflated.outcome).toBe(Outcome.ESCALATE);
+    expect(inflated.reasons?.[0]?.code).toBe('AMOUNT_FROM_UNTRUSTED_CONTENT');
+    expect(inflated.reasons?.[0]?.message).toContain('(read_email id=msg-1043)');
+    expect((await pay('40.00')).outcome).toBe(Outcome.ALLOW);
+  });
+
   it('holds a payout to a payee that came only from an email', async () => {
     const r = await assess('new-bank@attacker.example');
     expect(r.outcome).toBe(Outcome.ESCALATE);

@@ -38,3 +38,26 @@ export function payeeOnlyFromUntrusted(
   if (!seen.includes(t)) return false;
   return !userText.some((text) => contentTokens(text).includes(t));
 }
+
+// an amount the agent read in untrusted content that is more than anything the user wrote:
+// "pay lena's $40 invoice" and an email asking for $140. a stated cap ("up to $50") is
+// still respected, since only going above every written amount counts. with no amount in
+// the user's words there is nothing to compare, and the judge decides.
+export function amountAboveWhatUserWrote(
+  amount: { value: string } | undefined,
+  seen: readonly string[],
+  userText: readonly string[],
+): boolean {
+  if (!amount) return false;
+  const [whole = '0', frac = ''] = amount.value.split('.');
+  if (!seen.includes(amountToken(whole, frac))) return false;
+  // tokens are "amount:123.45", so dropping the prefix and the point gives exact cents
+  const cents = (t: string) => BigInt(t.slice('amount:'.length).replace('.', ''));
+  const written = userText
+    .flatMap((text) => contentTokens(text))
+    .filter((t) => t.startsWith('amount:'))
+    .map(cents);
+  if (written.length === 0) return false;
+  const paying = cents(amountToken(whole, frac));
+  return written.every((w) => paying > w);
+}

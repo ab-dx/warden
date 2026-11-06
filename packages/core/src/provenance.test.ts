@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { amountToken, contentTokens, payeeOnlyFromUntrusted } from './provenance.js';
+import {
+  amountAboveWhatUserWrote,
+  amountToken,
+  contentTokens,
+  payeeOnlyFromUntrusted,
+} from './provenance.js';
 
 describe('contentTokens', () => {
   it('finds payees, amounts and paypal ids in an email', () => {
@@ -52,5 +57,27 @@ describe('payeeOnlyFromUntrusted', () => {
     expect(payeeOnlyFromUntrusted('someone@else.example', seen, [])).toBe(false);
     expect(payeeOnlyFromUntrusted('2GG279541U471931P', seen, [])).toBe(false);
     expect(payeeOnlyFromUntrusted(undefined, seen, [])).toBe(false);
+  });
+});
+
+describe('amountAboveWhatUserWrote', () => {
+  const seen = ['amount:140.00', 'amount:40.00', 'email:lena@ortiz.example'];
+  const usd = (value: string) => ({ value });
+
+  it('holds an inflated amount from an email, allows the one the user wrote', () => {
+    const task = ["Pay Lena's $40 invoice for the menu illustration."];
+    expect(amountAboveWhatUserWrote(usd('140.00'), seen, task)).toBe(true);
+    expect(amountAboveWhatUserWrote(usd('40.00'), seen, task)).toBe(false);
+  });
+
+  it('treats a written amount as a ceiling, not an exact match', () => {
+    expect(amountAboveWhatUserWrote(usd('40.00'), seen, ['Refund up to $50 each'])).toBe(false);
+    expect(amountAboveWhatUserWrote(usd('140.00'), seen, ['Refund up to $50 each'])).toBe(true);
+  });
+
+  it('leaves it to the judge when the user wrote no amount, or the email had none', () => {
+    expect(amountAboveWhatUserWrote(usd('140.00'), seen, ["Pay Lena's invoice"])).toBe(false);
+    expect(amountAboveWhatUserWrote(usd('77.00'), seen, ['Pay Lena $40'])).toBe(false);
+    expect(amountAboveWhatUserWrote(undefined, seen, ['Pay Lena $40'])).toBe(false);
   });
 });

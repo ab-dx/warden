@@ -86,6 +86,9 @@ describe('plainBrief', () => {
     expect(plainBrief(f)).toContain('looks like sam@kade-photo.example');
     expect(plainBrief(f)).toContain('only saw this payee in an email');
     expect(plainBrief(facts(held('x@y.example'), []))).toContain('No mandate');
+    expect(
+      plainBrief(facts(held('x@y.example', ['AMOUNT_FROM_UNTRUSTED_CONTENT']), [mandate([])])),
+    ).toContain('more than you wrote');
   });
 });
 

@@ -94,6 +94,8 @@ export function plainBrief(f: Facts) {
         ? `The agent only saw this payee in ${f.seenIn}, never in your instructions.`
         : 'The agent only saw this payee in an email or web page, never in your instructions.',
     );
+  if (f.reasons.some((r) => r.code === 'AMOUNT_FROM_UNTRUSTED_CONTENT'))
+    parts.push('The amount comes from what the agent read, and it is more than you wrote.');
   if (f.mandates.length === 0) parts.push('No mandate of yours covers this payment.');
   if (parts.length === 0) parts.push('It falls outside what your mandate allows.');
   return parts.join(' ');
