@@ -7,6 +7,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Connection, Client as TemporalClient } from '@temporalio/client';
 import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry';
 import { LedgerService, PolicyService } from '@warden/contracts';
+import { signingKey } from '@warden/core';
 import { internalClient } from '@warden/service-kit';
 import { z } from 'zod';
 import { decide, pendingApprovals } from './approvals.js';
@@ -43,6 +44,8 @@ const env = z
     JUDGE_LLM_BASE_URL: z.string().optional(),
     JUDGE_LLM_MODEL: z.string().optional(),
     JUDGE_LLM_API_KEY: z.string().optional(),
+    // a 32-byte base64url ed25519 seed; set it to sign mandates as verifiable tokens
+    MANDATE_SIGNING_KEY: z.string().optional(),
     DASHBOARD_DIR: z
       .string()
       .default(fileURLToPath(new URL('../../dashboard/dist', import.meta.url))),
@@ -81,6 +84,7 @@ const deps: Deps = {
     complete,
   }),
   complete,
+  signing: c.MANDATE_SIGNING_KEY ? signingKey(c.MANDATE_SIGNING_KEY) : undefined,
 };
 
 @Module({
@@ -96,6 +100,10 @@ app
   .getInstance()
   .get('/healthz', (_req: unknown, res: { json: (b: unknown) => void }) =>
     res.json({ status: 'ok' }),
+  )
+  // the key that checks a signed mandate; public, since verifying needs no secret
+  .get('/.well-known/jwks.json', (_req: unknown, res: { json: (b: unknown) => void }) =>
+    res.json({ keys: deps.signing ? [deps.signing.jwk] : [] }),
   );
 
 if (existsSync(c.DASHBOARD_DIR)) {
@@ -104,8 +112,10 @@ if (existsSync(c.DASHBOARD_DIR)) {
   app
     .getHttpAdapter()
     .getInstance()
-    .get(/^\/(?!api\/|healthz).*/, (_req: unknown, res: { sendFile: (p: string) => void }) =>
-      res.sendFile(`${c.DASHBOARD_DIR}/index.html`),
+    .get(
+      /^\/(?!api\/|healthz|\.well-known\/).*/,
+      (_req: unknown, res: { sendFile: (p: string) => void }) =>
+        res.sendFile(`${c.DASHBOARD_DIR}/index.html`),
     );
 } else {
   Logger.warn(`no dashboard build at ${c.DASHBOARD_DIR}; serving the api only`, 'main');

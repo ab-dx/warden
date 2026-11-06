@@ -28,6 +28,7 @@ import {
   type PolicyService,
   VerifyChainResponseSchema,
 } from '@warden/contracts';
+import { type signingKey, signMandate } from '@warden/core';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { decide, type Ledger, pendingApprovals } from './approvals.js';
@@ -35,6 +36,7 @@ import type { Complete } from './brief.js';
 import { draftMandate } from './draft.js';
 import type { Sessions } from './session.js';
 import { today } from './stats.js';
+import { mandateClaims } from './token.js';
 
 export const DEPS = Symbol('deps');
 export type Deps = {
@@ -47,6 +49,8 @@ export type Deps = {
   brief: (call: CallSummary) => Promise<string>;
   // drafts a mandate from the owner's words; unset when no model is configured
   complete?: Complete | undefined;
+  // signs mandates as tokens anyone can verify; unset when no signing key is configured
+  signing?: ReturnType<typeof signingKey> | undefined;
 };
 
 const COOKIE = 'warden_session';
@@ -258,6 +262,18 @@ export class ApiController {
       }),
     );
     return mandate ? toJson(MandateSchema, mandate) : null;
+  }
+
+  // the mandate as a signed token, for handing to a merchant or another service
+  @Get('mandates/:id/token')
+  async token(@Param('id') id: string) {
+    if (!this.deps.signing) throw new HttpException('no MANDATE_SIGNING_KEY is configured', 503);
+    const { mandates } = await rpc(this.deps.policy.listMandates({ agentId: '' }));
+    const m = mandates.find((x) => x.id === id);
+    if (!m) throw new HttpException(`no mandate ${id}`, 404);
+    const claims = mandateClaims(m);
+    if (!claims) throw new HttpException('only an active mandate can be signed', 409);
+    return { token: signMandate(claims, this.deps.signing), kid: this.deps.signing.kid };
   }
 
   @Delete('mandates/:id')

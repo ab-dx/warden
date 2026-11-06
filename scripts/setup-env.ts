@@ -18,6 +18,8 @@ const wanted: Record<string, string> = {
   LEDGER_TOKEN: hex(32),
   JUDGE_TOKEN: hex(32),
   SESSION_SECRET: hex(32),
+  // ed25519 seed for signing mandates as tokens
+  MANDATE_SIGNING_KEY: randomBytes(32).toString('base64url'),
   DASHBOARD_PASSWORD: hex(9),
   WARDEN_AGENT_KEY: agentKey,
   BENCH_AGENT_KEY: benchKey,

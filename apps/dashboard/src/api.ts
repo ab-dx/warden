@@ -100,6 +100,8 @@ export const api = {
   logout: () => call<void>('DELETE', '/api/session'),
   approvals: () => call<Approval[]>('GET', '/api/approvals'),
   stats: () => call<Stats>('GET', '/api/stats'),
+  mandateToken: (id: string) =>
+    call<{ token: string; kid: string }>('GET', `/api/mandates/${id}/token`),
   draftMandate: (text: string) => call<Draft>('POST', '/api/mandates/draft', { text }),
   decide: (callId: string, approved: boolean) =>
     call<void>('POST', `/api/approvals/${callId}`, { approved }),

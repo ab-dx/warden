@@ -34,6 +34,10 @@ function Row({ m }: { m: Mandate }) {
     onSettled: () => qc.invalidateQueries({ queryKey: ['mandates'] }),
   });
   const active = m.status === 'MANDATE_STATUS_ACTIVE';
+  // the signed mandate, for a merchant or service to verify against /.well-known/jwks.json
+  const copy = useMutation({
+    mutationFn: async () => navigator.clipboard.writeText((await api.mandateToken(m.id)).token),
+  });
   const spent = share(m.spent?.value, m.maxTotal.value);
   const held = share(m.reserved?.value, m.maxTotal.value);
   return (
@@ -41,14 +45,25 @@ function Row({ m }: { m: Mandate }) {
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <p className="text-lg font-medium">“{m.task}”</p>
         {active ? (
-          <button
-            type="button"
-            onClick={() => revoke.mutate()}
-            disabled={revoke.isPending}
-            className="text-sm text-refused hover:underline"
-          >
-            Revoke
-          </button>
+          <span className="flex gap-4 text-sm">
+            <button
+              type="button"
+              onClick={() => copy.mutate()}
+              disabled={copy.isPending}
+              className="text-blue hover:underline"
+              aria-live="polite"
+            >
+              {copy.isSuccess ? 'Copied' : copy.isError ? 'Could not sign' : 'Copy signed mandate'}
+            </button>
+            <button
+              type="button"
+              onClick={() => revoke.mutate()}
+              disabled={revoke.isPending}
+              className="text-refused hover:underline"
+            >
+              Revoke
+            </button>
+          </span>
         ) : (
           <span className="text-sm">
             {m.status === 'MANDATE_STATUS_REVOKED' ? 'Revoked' : 'Expired'}
