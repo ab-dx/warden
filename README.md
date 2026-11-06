@@ -232,6 +232,18 @@ escalate_when:
 
 `SPLIT_PAYMENT` adds up the payments to one payee within `split_window_seconds` (an hour in the example) and holds the one that takes the sum past the mandate's per-payment cap, so an invoice can't be paid in slices to get under it. `allowed_hours` (for example 09:00 to 18:00 in the owner's timezone) stops money moving outside working hours. `max_escalations_per_hour` caps how many payments can wait for the owner in an hour; past it, a payment that would be held is refused with `ESCALATION_LIMIT`, so an agent can't wear the owner down with a flood of requests until one gets approved without a look. Everything else (deny-listed payees, the daily budget, payment rate, repeats) denies without asking.
 
+## Observability
+
+Every service sends OpenTelemetry traces to Jaeger (http://localhost:16686). A payment is one trace from end to end: the agent's MCP request at the gateway, the Temporal workflow and each of its activities, the calls into the judge and policy services down to their SQL, and on through Kafka to the ledger, since events carry the trace in their headers.
+
+The ledger sees every event, so it also counts them: decisions by outcome and by which check decided, owner answers by where they came from (dashboard, Telegram, timeout), PayPal refusals by error, and the time from request to decision. With the `obs` profile, metrics go to Prometheus and a Warden dashboard opens in Grafana at http://localhost:3000:
+
+```sh
+docker compose --profile app --profile obs up -d
+```
+
+Set `OTEL_TRACES_ENDPOINT=` or `OTEL_METRICS_ENDPOINT=` (empty) in `.env` to switch either off.
+
 ## Development
 
 ```sh
