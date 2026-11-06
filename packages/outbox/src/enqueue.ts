@@ -2,6 +2,7 @@ import { toBinary } from '@bufbuild/protobuf';
 import { type Event, EventSchema } from '@warden/contracts';
 import type { ClientBase } from 'pg';
 import { topicStem } from './topics.js';
+import { currentTraceparent } from './trace.js';
 
 // must run on the same client, inside the same transaction, as the state change
 // it describes. that is the whole point of the outbox. a repeated event id is
@@ -20,7 +21,7 @@ export async function enqueue(tx: ClientBase, event: Event, traceparent?: string
       event.aggregateId,
       kind,
       Buffer.from(toBinary(EventSchema, event)),
-      traceparent ?? null,
+      traceparent ?? currentTraceparent() ?? null,
     ],
   );
 }

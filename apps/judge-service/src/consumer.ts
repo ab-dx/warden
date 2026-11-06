@@ -1,7 +1,7 @@
 import { fromBinary } from '@bufbuild/protobuf';
 import { KafkaJS } from '@confluentinc/kafka-javascript';
 import { EventSchema } from '@warden/contracts';
-import { handleOnce, topicFor } from '@warden/outbox';
+import { consumed, handleOnce, topicFor } from '@warden/outbox';
 import type pg from 'pg';
 import { record } from './store.js';
 
@@ -31,7 +31,10 @@ export async function startConsumer(opts: {
       const p = event.payload;
       if (!event.eventId || p.case !== 'untrustedContentObserved')
         return opts.onSkip(`unexpected event at ${topic}/${partition}@${message.offset}`);
-      await handleOnce(opts.pool, opts.groupId, event.eventId, (tx) => record(tx, p.value));
+      const id = event.eventId;
+      await consumed(message.headers, 'judge untrustedContentObserved', () =>
+        handleOnce(opts.pool, opts.groupId, id, (tx) => record(tx, p.value)),
+      );
     },
   });
   return { stop: () => consumer.disconnect() };

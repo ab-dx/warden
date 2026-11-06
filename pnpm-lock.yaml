@@ -697,6 +697,9 @@ importers:
       '@confluentinc/kafka-javascript':
         specifier: 1.11.0
         version: 1.11.0(supports-color@8.1.1)
+      '@opentelemetry/api':
+        specifier: 1.10.0
+        version: 1.10.0
       '@warden/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -704,6 +707,12 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
     devDependencies:
+      '@opentelemetry/context-async-hooks':
+        specifier: 3.0.0
+        version: 3.0.0(@opentelemetry/api@1.10.0)
+      '@opentelemetry/core':
+        specifier: 3.0.0
+        version: 3.0.0(@opentelemetry/api@1.10.0)
       '@testcontainers/kafka':
         specifier: 12.2.1
         version: 12.2.1(supports-color@8.1.1)

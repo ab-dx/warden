@@ -5,3 +5,4 @@ export { type OutboxMessage, OutboxRelay, type Publisher, type RelayOptions } fr
 export { outboxSchemaSql } from './schema.js';
 export { startOutbox } from './start.js';
 export { topicFor, topicStem } from './topics.js';
+export { consumed, currentTraceparent } from './trace.js';

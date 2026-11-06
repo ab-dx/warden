@@ -18,6 +18,8 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@opentelemetry/context-async-hooks": "3.0.0",
+    "@opentelemetry/core": "3.0.0",
     "@testcontainers/kafka": "12.2.1",
     "@testcontainers/postgresql": "12.2.1",
     "@types/pg": "^8.23.1",
@@ -26,6 +28,7 @@
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",
     "@confluentinc/kafka-javascript": "1.11.0",
+    "@opentelemetry/api": "1.10.0",
     "@warden/contracts": "workspace:*",
     "pg": "8.23.1"
   }

@@ -1,7 +1,7 @@
 import { fromBinary } from '@bufbuild/protobuf';
 import { KafkaJS } from '@confluentinc/kafka-javascript';
 import { EventSchema } from '@warden/contracts';
-import { handleOnce, topicFor } from '@warden/outbox';
+import { consumed, handleOnce, topicFor } from '@warden/outbox';
 import type pg from 'pg';
 import { append } from './store.js';
 
@@ -35,7 +35,10 @@ export async function startConsumer(opts: {
       }
       if (!event.eventId)
         return opts.onSkip(`event without id at ${topic}/${partition}@${message.offset}`);
-      await handleOnce(opts.pool, opts.groupId, event.eventId, (tx) => append(tx, event));
+      const id = event.eventId;
+      await consumed(message.headers, `ledger ${event.payload.case}`, () =>
+        handleOnce(opts.pool, opts.groupId, id, (tx) => append(tx, event)),
+      );
     },
   });
   return { stop: () => consumer.disconnect() };
