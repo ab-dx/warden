@@ -43,6 +43,7 @@ flowchart LR
 - **Approvals.** A payment outside the mandate is held, not just refused. The owner sees who, how much and why on the dashboard, and approves or rejects it, or taps Approve or Reject in Telegram (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`). If nobody answers in time, it's blocked.
 - **A note for the owner.** Each held payment comes with a short note: does the payee look like someone in the mandate without being them, did it only appear in an email, what to check before approving. The note is built from Warden's own facts (payment fields, the mandate, reason codes, a lookalike check) and never from anything the agent read, and it can't change a verdict. With a model configured it is written by the judge's model, otherwise it is a plain sentence.
 - **Structured refusals.** A blocked agent gets a reason it can act on (`COUNTERPARTY_NOT_IN_MANDATE`, `OVER_DAILY_BUDGET`, ...) instead of an opaque error.
+- **Signed mandates.** An active mandate can be issued as a signed token (Ed25519, a standard compact JWS) stating its exact scope and expiry, so a merchant or another service can check what the agent is allowed to do without asking Warden.
 - **Ledger.** Every call, decision and PayPal result is written to an append-only, hash-chained ledger, so any later edit is detectable.
 
 > [!IMPORTANT]
@@ -231,6 +232,10 @@ escalate_when:
 ```
 
 `SPLIT_PAYMENT` adds up the payments to one payee within `split_window_seconds` (an hour in the example) and holds the one that takes the sum past the mandate's per-payment cap, so an invoice can't be paid in slices to get under it. `allowed_hours` (for example 09:00 to 18:00 in the owner's timezone) stops money moving outside working hours. `max_escalations_per_hour` caps how many payments can wait for the owner in an hour; past it, a payment that would be held is refused with `ESCALATION_LIMIT`, so an agent can't wear the owner down with a flood of requests until one gets approved without a look. Everything else (deny-listed payees, the daily budget, payment rate, repeats) denies without asking.
+
+## Signed mandates
+
+On the Mandates tab, **Copy signed mandate** gives the token for an active mandate (also `GET /api/mandates/:id/token`). The public key is at `/.well-known/jwks.json`, so any JWT library can verify it; `verifyMandate` in `packages/core` does the same in a few lines with Node's own crypto. The token carries the agent, the task, the tools, the payees, both caps and the mandate's expiry, and Warden only signs active mandates. `pnpm setup:env` generates the key (`MANDATE_SIGNING_KEY`).
 
 ## Observability
 
