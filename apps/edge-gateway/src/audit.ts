@@ -16,10 +16,10 @@ export function outboxAudit(pool: pg.Pool): Audit {
 
 // what the agent read from an untrusted tool, keyed by session for provenance
 export function outboxObserve(pool: pg.Pool): Observe {
-  return ({ sessionId, sourceTool, tokens }) =>
+  return ({ sessionId, sourceTool, sourceRef, tokens }) =>
     write(pool, 'session', sessionId, {
       case: 'untrustedContentObserved',
-      value: { sessionId, sourceTool, tokens },
+      value: { sessionId, sourceTool, sourceRef, tokens },
     });
 }
 

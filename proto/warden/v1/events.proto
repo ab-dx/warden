@@ -83,4 +83,6 @@ message UntrustedContentObserved {
   string source_tool = 2;
   // normalised tokens (emails, amounts, ids) found in content the agent read
   repeated string tokens = 3;
+  // which item it was, from the call's arguments ("id=msg-1043"), so a hold can name it
+  string source_ref = 4;
 }

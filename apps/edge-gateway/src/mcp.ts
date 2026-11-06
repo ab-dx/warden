@@ -23,8 +23,18 @@ export type Audit = (e: {
 export type Observe = (e: {
   sessionId: string;
   sourceTool: string;
+  sourceRef: string;
   tokens: string[];
 }) => Promise<void>;
+
+// which item a read was about ("id=msg-1043"), so a hold can name it. the agent picks these
+// arguments, so keep only id-like characters and keep it short: no room for instructions
+export const sourceRef = (args: Record<string, unknown>) =>
+  Object.entries(args)
+    .filter(([, v]) => typeof v === 'string' || typeof v === 'number')
+    .map(([k, v]) => `${k.replace(/[^\w-]/g, '')}=${String(v).replace(/[^\w.@:-]/g, '')}`)
+    .join(' ')
+    .slice(0, 60);
 
 export type GatewayDeps = {
   connector: RpcClient<typeof ConnectorService>;
@@ -133,7 +143,13 @@ export function gatewayServer(
       .join('\n');
     const tokens = contentTokens(text);
     try {
-      if (tokens.length) await deps.observe({ sessionId: sessionId(), sourceTool: name, tokens });
+      if (tokens.length)
+        await deps.observe({
+          sessionId: sessionId(),
+          sourceTool: name,
+          sourceRef: sourceRef(args),
+          tokens,
+        });
     } catch {
       return denied(newCallId(), [
         {

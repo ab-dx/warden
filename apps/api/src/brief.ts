@@ -40,6 +40,15 @@ export function lookalike(payee: string | undefined, known: readonly string[]) {
   return undefined;
 }
 
+// the item provenance named, taken only if it has the shape warden writes (a tool name and
+// id-like arguments), so no other text from a reason can reach the note
+function seenIn(call: CallSummary) {
+  const m = call.reasons
+    .find((r) => r.check === 'provenance' && r.code === 'PAYEE_FROM_UNTRUSTED_CONTENT')
+    ?.message.match(/\(([a-z_]+(?: [\w-]+=[\w.@:-]*)*)\)/);
+  return m?.[1];
+}
+
 export type Facts = {
   tool: string;
   amount: string;
@@ -47,6 +56,8 @@ export type Facts = {
   reasons: { check: string; code: string }[];
   mandates: { task: string; payees: string[]; perPaymentLimit: string | null }[];
   resembles?: string | undefined;
+  // where the agent read the payee, when provenance named it: "read_email id=msg-1043"
+  seenIn?: string | undefined;
 };
 
 export function facts(call: CallSummary, mandates: Mandate[]): Facts {
@@ -64,6 +75,7 @@ export function facts(call: CallSummary, mandates: Mandate[]): Facts {
       payees: m.counterparties,
       perPaymentLimit: m.maxPerCall ? `${m.maxPerCall.value} ${m.maxPerCall.currency}` : null,
     })),
+    seenIn: seenIn(call),
     resembles: lookalike(
       call.counterparty,
       mine.flatMap((m) => m.counterparties),
@@ -78,7 +90,9 @@ export function plainBrief(f: Facts) {
     parts.push(`The payee looks like ${f.resembles}, who you named, but isn't them.`);
   if (f.reasons.some((r) => r.code === 'PAYEE_FROM_UNTRUSTED_CONTENT'))
     parts.push(
-      'The agent only saw this payee in an email or web page, never in your instructions.',
+      f.seenIn
+        ? `The agent only saw this payee in ${f.seenIn}, never in your instructions.`
+        : 'The agent only saw this payee in an email or web page, never in your instructions.',
     );
   if (f.mandates.length === 0) parts.push('No mandate of yours covers this payment.');
   if (parts.length === 0) parts.push('It falls outside what your mandate allows.');

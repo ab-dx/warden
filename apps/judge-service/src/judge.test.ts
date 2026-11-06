@@ -13,7 +13,7 @@ beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:17.11').start();
   pool = new pg.Pool({ connectionString: container.getConnectionUri() });
   await pool.query(schemaSql);
-  const mail = { sessionId: 's1', sourceTool: 'read_email' };
+  const mail = { sessionId: 's1', sourceTool: 'read_email', sourceRef: 'id=msg-1043' };
   await record(pool, { ...mail, tokens: ['email:arjun@mehta.example', 'amount:96.00'] });
   // a redelivered event changes nothing
   await record(pool, { ...mail, tokens: ['email:new-bank@attacker.example', 'amount:96.00'] });
@@ -45,17 +45,23 @@ const assess = (counterparty: string, sessionId = 's1', llm?: Parameters<typeof 
 
 describe('provenance', () => {
   it('keeps one row per token a session read', async () => {
-    expect((await seen(pool, 's1')).sort()).toEqual([
+    const rows = await seen(pool, 's1');
+    expect(rows.map((r) => r.token).sort()).toEqual([
       'amount:96.00',
       'email:arjun@mehta.example',
       'email:new-bank@attacker.example',
     ]);
+    expect(rows.every((r) => r.sourceTool === 'read_email' && r.sourceRef === 'id=msg-1043')).toBe(
+      true,
+    );
   });
 
   it('holds a payout to a payee that came only from an email', async () => {
     const r = await assess('new-bank@attacker.example');
     expect(r.outcome).toBe(Outcome.ESCALATE);
     expect(r.reasons?.[0]?.code).toBe('PAYEE_FROM_UNTRUSTED_CONTENT');
+    // and says which item it was read in, so the owner can open that email
+    expect(r.reasons?.[0]?.message).toContain('(read_email id=msg-1043)');
   });
 
   it('allows a payee the user named, or one this session never read', async () => {
