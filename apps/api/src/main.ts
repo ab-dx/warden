@@ -49,10 +49,14 @@ const env = z
     // a 32-byte base64url ed25519 seed; set it to sign mandates as verifiable tokens
     MANDATE_SIGNING_KEY: z.string().optional(),
     // approving a payment above this (USD) needs the owner's passkey; unset turns it off
-    PASSKEY_ABOVE: z
-      .string()
-      .regex(/^\d+(\.\d{2})?$/)
-      .optional(),
+    // an empty line in .env means off
+    PASSKEY_ABOVE: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z
+        .string()
+        .regex(/^\d+(\.\d{2})?$/)
+        .optional(),
+    ),
     // where the dashboard is served; passkeys are bound to it
     PASSKEY_ORIGIN: z.string().default('http://localhost:7005'),
     PASSKEY_FILE: z.string().default('passkey.json'),
