@@ -7,6 +7,8 @@ services:
   temporal: { ports: !reset [] }
   jaeger: { ports: !reset [] }
   ollama: { ports: !reset [] }
+  prometheus: { ports: !reset [] }
+  grafana: { ports: !reset [] }
   inbox: { ports: !reset [] }
   edge-gateway: { ports: !reset [] }
   api:

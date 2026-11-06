@@ -101,6 +101,31 @@ services:
     image: jaegertracing/jaeger:2.22.0
     ports: ["16686:16686", "4317:4317", "4318:4318"]
 
+  # metrics and dashboards: docker compose --profile app --profile obs up -d
+  # grafana on http://localhost:3000, prometheus on http://localhost:9090, both local only
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    profiles: [obs]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--web.enable-otlp-receiver"]
+    ports: ["127.0.0.1:9090:9090"]
+    volumes:
+      - ./deploy/compose/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus:/prometheus
+
+  grafana:
+    image: grafana/grafana:13.3.0
+    profiles: [obs]
+    environment:
+      # a local tool: open straight to the dashboard as a viewer
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/warden.json
+    ports: ["127.0.0.1:3000:3000"]
+    volumes:
+      - ./deploy/compose/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/compose/grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on: [prometheus]
+
   # optional local model for the demo agent: docker compose --profile llm up -d ollama
   ollama:
     image: ollama/ollama:0.40.14
@@ -267,6 +292,7 @@ services:
       }
 
 volumes:
+  prometheus:
   ollama:
   postgres:
   kafka:

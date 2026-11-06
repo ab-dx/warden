@@ -1,0 +1,7 @@
+# services push metrics over otlp (see the --web.enable-otlp-receiver flag in compose), so
+# there is nothing to scrape
+global:
+  scrape_interval: 15s
+otlp:
+  # the service name becomes the job label, so panels can split by service
+  promote_resource_attributes: [service.name]
