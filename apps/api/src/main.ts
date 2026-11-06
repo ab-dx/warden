@@ -5,6 +5,7 @@ import { Logger, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Connection, Client as TemporalClient } from '@temporalio/client';
+import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry';
 import { LedgerService, PolicyService } from '@warden/contracts';
 import { internalClient } from '@warden/service-kit';
 import { z } from 'zod';
@@ -71,6 +72,8 @@ const deps: Deps = {
   temporal: new TemporalClient({
     connection: await Connection.connect({ address: c.TEMPORAL_ADDRESS }),
     namespace: c.TEMPORAL_NAMESPACE,
+    // an approval signal joins the payment's trace
+    interceptors: { workflow: [new OpenTelemetryWorkflowClientInterceptor()] },
   }),
   secureCookie: c.COOKIE_SECURE === 'true',
   brief: briefs({

@@ -5,6 +5,7 @@ import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { Controller, Delete, Get, Logger, Module, Post, Req, Res } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Connection, Client as TemporalClient } from '@temporalio/client';
+import { OpenTelemetryWorkflowClientInterceptor } from '@temporalio/interceptors-opentelemetry';
 import { ConnectorService } from '@warden/contracts';
 import { startOutbox } from '@warden/outbox';
 import { internalClient } from '@warden/service-kit';
@@ -31,6 +32,8 @@ const outbox = await startOutbox({
 const temporal = new TemporalClient({
   connection: await Connection.connect({ address: config.TEMPORAL_ADDRESS }),
   namespace: config.TEMPORAL_NAMESPACE,
+  // carries the request's trace into the payment workflow
+  interceptors: { workflow: [new OpenTelemetryWorkflowClientInterceptor()] },
 });
 const connector = internalClient(ConnectorService, config.CONNECTOR_URL, config.CONNECTOR_TOKEN);
 const deps: GatewayDeps = {

@@ -19,6 +19,7 @@
     "@nestjs/core": "12.3.2",
     "@nestjs/platform-express": "12.3.2",
     "@temporalio/client": "1.25.0",
+    "@temporalio/interceptors-opentelemetry": "1.25.0",
     "@warden/contracts": "workspace:*",
     "@warden/core": "workspace:*",
     "@warden/service-kit": "workspace:*",
