@@ -42,6 +42,8 @@ const agentPolicy = z
     split_window_seconds: z.number().int().nonnegative().default(0),
     // held payments per agent per hour before the rest are refused outright; 0 is off
     max_escalations_per_hour: z.number().int().nonnegative().default(0),
+    // a first payment to a payee the user didn't name, above this, goes to the user
+    new_payee_review_above: money.optional(),
     // money only moves between these times; to before from is an overnight window
     allowed_hours: z
       .object({ from: clock, to: clock, timezone, tiers: z.array(tier).default(['T3']) })

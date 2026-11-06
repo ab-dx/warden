@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { type Outcome, type Reason, tighten } from '@warden/core';
+import { contentTokens, emailToken, type Outcome, type Reason, tighten } from '@warden/core';
 import type pg from 'pg';
 import {
   capEscalations,
@@ -212,6 +212,9 @@ export class PolicyStore {
         duplicate: (dup.rows[0]?.n ?? 0) > 0,
         payeeRecentMinor: BigInt(toPayee?.rows[0]?.used ?? 0),
         withinHours: policy.allowed_hours ? withinHours(new Date(), policy.allowed_hours) : true,
+        newPayee: policy.new_payee_review_above
+          ? await this.newPayee(tx, intent.agentId, payee, mandate)
+          : false,
       };
       const held =
         policy.max_escalations_per_hour > 0
@@ -275,16 +278,40 @@ export class PolicyStore {
     }
   }
 
+  // an email payee the user didn't write anywhere in the mandate, and that this agent has
+  // never paid successfully. a settled payment is one paypal accepted, so a held, denied or
+  // refused one doesn't make a payee familiar
+  private async newPayee(
+    tx: pg.PoolClient,
+    agentId: string,
+    payee: string | undefined,
+    mandate: Facts['mandate'],
+  ) {
+    if (!payee?.includes('@')) return false;
+    const t = emailToken(payee);
+    const named = [mandate?.task ?? '', ...(mandate?.counterparties ?? [])].some((text) =>
+      contentTokens(text).includes(t),
+    );
+    if (named) return false;
+    const { rows } = await tx.query(
+      `select 1 from reservations r join evaluations e on e.call_id = r.call_id
+       where r.agent_id = $1 and e.counterparty = $2 and r.status = 'settled' limit 1`,
+      [agentId, payee],
+    );
+    return rows.length === 0;
+  }
+
   private async resolveMandate(tx: pg.PoolClient, intent: Intent): Promise<Facts['mandate']> {
     const { rows } = await tx.query<{
       id: string;
+      task: string;
       counterparties: string[];
       max_per_call_minor: string;
       max_total_minor: string;
       currency: string;
       used: string;
     }>(
-      `select m.id, m.counterparties, m.max_per_call_minor, m.max_total_minor, m.currency,
+      `select m.id, m.task, m.counterparties, m.max_per_call_minor, m.max_total_minor, m.currency,
               (select ${USED} from reservations r where r.mandate_id = m.id and r.${LIVE}) as used
        from mandates m
        where m.agent_id = $1 and m.status = 'active' and m.expires_at > now() and $2 = any(m.tools)
@@ -295,6 +322,7 @@ export class PolicyStore {
     if (!m) return undefined;
     return {
       id: m.id,
+      task: m.task,
       counterparties: m.counterparties,
       maxPerCallMinor: BigInt(m.max_per_call_minor),
       remainingMinor: BigInt(m.max_total_minor) - BigInt(m.used),

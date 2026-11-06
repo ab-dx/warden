@@ -16,6 +16,13 @@ agents:
     velocity: { max_calls: 5, per_seconds: 60, tiers: [T3] }
     duplicate_window_seconds: 300
     escalate_when: [NO_MANDATE, COUNTERPARTY_NOT_IN_MANDATE, OVER_MANDATE_PER_CALL_CAP, OVER_MANDATE_TOTAL]
+  careful-agent:
+    max_per_call: { value: "150.00", currency: USD }
+    daily_budget: { value: "300.00", currency: USD }
+    velocity: { max_calls: 50, per_seconds: 60, tiers: [T3] }
+    duplicate_window_seconds: 0
+    new_payee_review_above: { value: "0.00", currency: USD }
+    escalate_when: [NEW_PAYEE]
   tired-agent:
     max_per_call: { value: "150.00", currency: USD }
     daily_budget: { value: "300.00", currency: USD }
@@ -206,6 +213,26 @@ describe('PolicyStore', () => {
       limitMinor: 30000n,
       usedMinor: 1500n,
     });
+  });
+
+  it('holds a first payment to a payee nobody named, until one has gone through', async () => {
+    // any payee allowed, so only the new-payee rule stands in the way
+    await mandate({
+      agent_id: 'careful-agent',
+      task: 'pay contractors, including arjun@mehta.example',
+      counterparties: [],
+      maxPerCallMinor: 5000n,
+      maxTotalMinor: 100000n,
+    });
+    const pay = (counterparty: string) =>
+      store.evaluateAndReserve(payout({ agentId: 'careful-agent', counterparty }));
+    const first = await pay('stranger@pixel.example');
+    expect(first).toMatchObject({ outcome: 'escalate', reasons: [{ code: 'NEW_PAYEE' }] });
+    // named in the task: the user vouched for them
+    expect((await pay('Arjun@mehta.example')).outcome).toBe('allow');
+    // once a payment to them has settled, they are no longer new
+    await store.settle(first.reservationId ?? '', undefined, 'REF1');
+    expect((await pay('stranger@pixel.example')).outcome).toBe('allow');
   });
 
   it('denies agents with no policy', async () => {

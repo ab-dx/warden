@@ -25,6 +25,7 @@ const ok: Facts = {
   counterparty: 'dev@studio.example',
   mandate: {
     id: 'm1',
+    task: 'pay the studio contractors',
     counterparties: ['dev@studio.example', 'design@studio.example'],
     maxPerCallMinor: 10000n,
     remainingMinor: 20000n,
@@ -35,6 +36,7 @@ const ok: Facts = {
   duplicate: false,
   payeeRecentMinor: 0n,
   withinHours: true,
+  newPayee: false,
 };
 const run = (over: Partial<Facts>) => evaluate(policy, policies, { ...ok, ...over });
 const codes = (over: Partial<Facts>) => run(over).reasons.map((r) => r.code);
@@ -189,6 +191,32 @@ agents:
     expect(() =>
       parsePolicyFile(bad('{ from: "09:00", to: "18:00", timezone: Mars/Base }')),
     ).toThrow(/timezone/);
+  });
+});
+
+describe('new payee', () => {
+  it('holds a first payment to an unnamed payee above the threshold, and only then', () => {
+    const p = parsePolicyFile(`
+agents:
+  a:
+    max_per_call: { value: "150.00", currency: USD }
+    daily_budget: { value: "300.00", currency: USD }
+    velocity: { max_calls: 3, per_seconds: 60, tiers: [T3] }
+    duplicate_window_seconds: 300
+    new_payee_review_above: { value: "25.00", currency: USD }
+    escalate_when: [NEW_PAYEE]
+`).agents.a;
+    if (!p) throw new Error('policy');
+    const rules = compile(p);
+    const at = (over: Partial<Facts>) => evaluate(p, rules, { ...ok, ...over });
+    expect(at({ newPayee: false }).outcome).toBe('allow');
+    expect(at({ newPayee: true, amountMinor: 2500n }).outcome).toBe('allow');
+    expect(at({ newPayee: true, amountMinor: 2501n })).toMatchObject({
+      outcome: 'escalate',
+      reasons: [{ code: 'NEW_PAYEE' }],
+    });
+    // off unless the policy sets a threshold
+    expect(codes({ newPayee: true })).not.toContain('NEW_PAYEE');
   });
 });
 
