@@ -63,7 +63,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(increase(warden_decisions_total{outcome=\"escalate\"}[$__range])) / sum(increase(warden_decisions_total[$__range]))",
+          "expr": "(sum(increase(warden_decisions_total{outcome=\"escalate\"}[$__range])) or vector(0)) / sum(increase(warden_decisions_total[$__range]))",
           "legendFormat": ""
         }
       ],
