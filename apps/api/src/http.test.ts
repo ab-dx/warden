@@ -7,6 +7,7 @@ import { sessions } from './session.js';
 
 let base: string;
 let close: () => Promise<void>;
+const revoked: string[] = [];
 const signals: unknown[] = [];
 let waitingStatus = 'awaiting_approval';
 
@@ -28,7 +29,12 @@ beforeAll(async () => {
       ttlMs: 60_000,
     }),
     ledger: {} as never,
-    policy: {} as never,
+    policy: {
+      revokeMandate: async ({ mandateId }: { mandateId: string }) => {
+        revoked.push(mandateId);
+        return {};
+      },
+    } as never,
     temporal: temporal as never,
     secureCookie: false,
     brief: async () => 'a note',
@@ -78,6 +84,16 @@ describe('approvals over http', () => {
     );
     expect(r.status).toBe(415);
     expect(signals).toEqual([]);
+  });
+
+  it('revokes a mandate with a plain delete, which has no body to be json', async () => {
+    const { cookie } = await signIn();
+    const r = await fetch(`${base}/api/mandates/m_1`, {
+      method: 'DELETE',
+      headers: { cookie: cookie ?? '' },
+    });
+    expect(r.status).toBe(200);
+    expect(revoked).toEqual(['m_1']);
   });
 
   it('records who approved', async () => {

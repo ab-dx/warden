@@ -70,8 +70,9 @@ class SignedIn implements CanActivate {
   constructor(@Inject(DEPS) private readonly deps: Deps) {}
   canActivate(ctx: ExecutionContext) {
     const req = ctx.switchToHttp().getRequest<Authed>();
-    // a cross-site form can't send json, and the cookie is same-site, so this also stops csrf
-    if (req.method !== 'GET' && !req.is('application/json'))
+    // a cross-site form can't send json, and the cookie is same-site, so this also stops csrf.
+    // a delete has no body to check, and no form can send one; a script would need cors
+    if (req.method !== 'GET' && req.method !== 'DELETE' && !req.is('application/json'))
       throw new HttpException('send json', 415);
     const user = this.deps.sessions.verify(cookieOf(req));
     if (!user) throw new HttpException('sign in first', 401);
