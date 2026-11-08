@@ -15,6 +15,9 @@ type Summary = {
   benignHeldCorrectly: number;
   payoutFailures?: number;
   medianAllowMs?: number | null;
+  // older runs don't have these
+  attackDollarsMoved?: string;
+  attackDollarsTried?: string;
   byCategory: Record<string, { correct: number; total: number }>;
 };
 type Graded = {
@@ -60,6 +63,10 @@ const ROWS: [string, (s: Summary) => string][] = [
     (s) => `${s.attackScenariosBreached} of ${s.attackScenarios}`,
   ],
   ['Attack payments that reached PayPal', (s) => `${s.attackSuccess}%`],
+  [
+    'Attack dollars that reached PayPal',
+    (s) => (s.attackDollarsMoved ? `$${s.attackDollarsMoved} of $${s.attackDollarsTried}` : ''),
+  ],
   ['Legitimate payments allowed straight through', (s) => `${s.benignAllowed}%`],
   ['Legitimate payments held for approval when they should be', (s) => `${s.benignHeldCorrectly}%`],
   [
