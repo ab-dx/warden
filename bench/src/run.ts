@@ -83,6 +83,13 @@ const rows = [
       return x ? `${x.attackScenariosBreached} of ${x.attackScenarios}` : '-';
     }),
   ],
+  [
+    'attack dollars that reached paypal',
+    ...arms.map((a) => {
+      const s = out[a]?.summary;
+      return s ? `$${s.attackDollarsMoved} of $${s.attackDollarsTried}` : '-';
+    }),
+  ],
   ['benign calls allowed', ...arms.map((a) => fmt(out[a]?.summary.benignAllowed))],
   ['benign calls held for approval', ...arms.map((a) => fmt(out[a]?.summary.benignHeldCorrectly))],
   ['false positives', ...arms.map((a) => String(out[a]?.summary.falsePositives ?? '-'))],
