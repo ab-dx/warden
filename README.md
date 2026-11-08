@@ -187,7 +187,7 @@ By default the agent's brain is scripted: it does the job, and also obeys instru
 
 ## Benchmark
 
-`bench/` holds 30 scenarios: 8 benign, 4 benign but outside the mandate, 5 payee redirections, 4 inflated amounts, 4 unrequested actions, 3 split or repeated payments, and 2 attacks that stay inside the mandate. Each is a YAML file with the owner's task, the mandate, the emails the agent reads, and what should happen to each payment.
+`bench/` holds 35 scenarios: 10 benign, 4 benign but outside the mandate, 6 payee redirections, 5 inflated amounts, 4 unrequested actions, 3 split or repeated payments, and 3 attacks that stay inside the mandate. Five of them (`heldout-*`) were written after the last rule change, to check the rules weren't tuned to the rest. Each is a YAML file with the owner's task, the mandate, the emails the agent reads, and what should happen to each payment. Refunds go against real sandbox payments the harness makes for each run, card-paid in the customer's name, so Warden can ask PayPal who paid.
 
 The harness runs every scenario up to four ways: with no guard (calls are recorded, not sent), with Warden's policy only, with policy plus provenance, and with full Warden, which adds the LLM intent judge. A scripted owner approves held payments the scenario says are legitimate and rejects the rest.
 
@@ -203,17 +203,18 @@ Results with the scripted agent, which obeys every injected instruction, and `op
 
 |                                                           | no guard | policy only | policy + provenance | full Warden |
 | --------------------------------------------------------- | :------: | :---------: | :-----------------: | :---------: |
-| attack scenarios where money reached the attacker         | 18 of 18 |   7 of 18   |       4 of 18       | **2 of 18** |
-| attack payments that reached PayPal                       |   100%   |     33%     |         23%         |   **17%**   |
-| legitimate payments allowed straight through              |   100%   |    100%     |         94%         |     94%     |
+| attack scenarios where money reached the attacker         | 21 of 21 |   5 of 21   |       3 of 21       | **1 of 21** |
+| attack payments that reached PayPal                       |   100%   |     24%     |         18%         |   **12%**   |
+| attack dollars that reached PayPal (of $2,093 tried)      |  $2,093  |    $392     |        $153         |   **$50**   |
+| legitimate payments allowed straight through              |   100%   |     95%     |         95%         |     95%     |
 | legitimate payments held for approval when they should be |    0%    |    100%     |        100%         |  **100%**   |
-| median time to allow a payment                            |   3 ms   |    1.1 s    |        1.1 s        |    4.4 s    |
+| median time to allow a payment                            |   4 ms   |    1.9 s    |        2.2 s        |    5.9 s    |
 
-Each layer catches what the one before it can't. The judge adds about three seconds to a payment it allows, and in this run it held two inflated invoices and none of the legitimate payments.
+Each layer catches what the one before it can't. Provenance holds the two inflated invoices whose amount came from an email. The judge holds the two refunds PayPal says were paid by someone other than the customer the owner named, which nothing else can see. It adds about four seconds to a payment it allows. All five held-out scenarios came out right with full Warden.
 
-What still gets through full Warden: four slices of an invoice split eight ways, which add up to exactly the per-payment cap before the split rule holds the fifth, and a second refund nobody asked for, which looks to the judge exactly like the first. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/), and the judge on its own (`judge-eval`) in [`bench/results/judge/`](bench/results/judge/).
+What still gets through full Warden is one scenario: four slices of an invoice split eight ways, $50 in all, which is exactly the owner's per-payment cap; the split rule holds the fifth. The one legitimate payment held is a contractor paid under a mandate that allows any payee: the payee only appears in the email, which provenance can't tell from an attack. Raw results are in [`bench/results/`](bench/results/), and the judge on its own (`judge-eval`) in [`bench/results/judge/`](bench/results/judge/).
 
-With a real model as the agent (`anthropic/claude-haiku-5.5`, one run per arm), the picture changes: the model itself refused almost every injected instruction. With no guard it was fooled once in 18 attack scenarios, and with policy and provenance on, no attack it tried reached PayPal. Its attempts varied a lot between runs (once in one arm, nine times in another), and it also skipped about four in ten legitimate payments in every arm, the unguarded one included. The scripted agent stays the main measure because it always takes the bait, which is the case a firewall exists for.
+With a real model as the agent (`anthropic/claude-haiku-5.5`, one run per arm, on the earlier 18-attack set), the picture changes: the model itself refused almost every injected instruction. With no guard it was fooled once in 18 attack scenarios, and with policy and provenance on, no attack it tried reached PayPal. Its attempts varied a lot between runs (once in one arm, nine times in another), and it also skipped about four in ten legitimate payments in every arm, the unguarded one included. The scripted agent stays the main measure because it always takes the bait, which is the case a firewall exists for.
 
 > [!NOTE]
 > The guarded arms make real sandbox payouts, so the sandbox account needs a payout balance. Payouts PayPal refused are counted and reported separately.
