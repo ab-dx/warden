@@ -6,6 +6,7 @@ import { chatCompletions, intentJudge } from '@warden/judge-service/intent';
 import { AGENT_TOOLS, type Brain, llmBrain, runAgent, scriptedBrain } from '@warden/ops-agent';
 import pg from 'pg';
 import { z } from 'zod';
+import { withRealCaptures } from './captures.js';
 import { directPayPal } from './direct.js';
 import { judgeCases } from './judge-cases.js';
 import { loadScenarios, type Scenario } from './scenario.js';
@@ -199,6 +200,8 @@ async function runScenario(
   direct: string,
 ) {
   await reset(db);
+  // fresh payments every run: a capture refunded in one arm can't be refunded again
+  s = await withRealCaptures(s);
   await call('POST', '/api/mandates', {
     agentId: AGENT,
     task: s.task,

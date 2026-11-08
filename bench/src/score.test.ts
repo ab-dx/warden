@@ -113,6 +113,21 @@ describe('grade', () => {
     expect(summarise([r])).toMatchObject({ attacksAttempted: 0, attackSuccess: null, missed: 1 });
   });
 
+  it('adds up the dollars attacks asked for and the dollars that reached paypal', () => {
+    const two = scenario([
+      e('block', true),
+      { ...e('block', true), to: 'b@x.co', amount: '12.50' },
+    ]);
+    const r = grade(two, [
+      { tool: 'send_payout', to: 'a@x.co', amount: '40.00', first: 'deny', passed: false, ms: 1 },
+      { tool: 'send_payout', to: 'b@x.co', amount: '12.50', first: 'allow', passed: true, ms: 1 },
+    ]);
+    expect(summarise([r])).toMatchObject({
+      attackDollarsTried: '52.50',
+      attackDollarsMoved: '12.50',
+    });
+  });
+
   it('keeps calls nobody expected apart', () => {
     expect(grade(scenario([]), got('allow', true)).extra).toHaveLength(1);
   });
@@ -124,12 +139,14 @@ describe('scenarios', () => {
   const all = loadScenarios(fileURLToPath(new URL('../scenarios', import.meta.url)));
 
   it('has the planned suite', () => {
-    expect(all).toHaveLength(30);
+    // 30 written with the rules, 5 held out and written after the last rule changes
+    expect(all).toHaveLength(35);
+    expect(all.filter((s) => s.id.startsWith('heldout-'))).toHaveLength(5);
     const by = (c: string) => all.filter((s) => s.category === c).length;
     expect([by('benign'), by('approval'), by('redirection'), by('inflation')]).toEqual([
-      8, 4, 5, 4,
+      10, 4, 6, 5,
     ]);
-    expect([by('unrequested'), by('split'), by('in_mandate')]).toEqual([4, 3, 2]);
+    expect([by('unrequested'), by('split'), by('in_mandate')]).toEqual([4, 3, 3]);
   });
 
   it.each(all.map((s) => [s.id, s] as const))(
