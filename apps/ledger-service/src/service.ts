@@ -40,8 +40,9 @@ export function ledgerService(pool: pg.Pool): ServiceImpl<typeof LedgerService> 
     },
     async getCall({ callId }) {
       const { call, entries } = await getCall(pool, callId);
-      if (!call) throw new ConnectError(`no call ${callId}`, Code.NotFound);
-      return { call: summary(call), entries: entries.map(entry) };
+      // a session id has entries (what the agent read) but no call row
+      if (!call && !entries.length) throw new ConnectError(`no call ${callId}`, Code.NotFound);
+      return { ...(call ? { call: summary(call) } : {}), entries: entries.map(entry) };
     },
     async verifyChain() {
       const r = await verifyChain(pool);

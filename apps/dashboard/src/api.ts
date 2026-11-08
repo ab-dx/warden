@@ -19,12 +19,19 @@ export type Call = {
   receivedAt?: string;
   updatedAt?: string;
 };
+export type Trail = {
+  reads: { tool: string; ref: string; at: string; payee: boolean; amount: boolean }[];
+  // who paypal says paid the capture a refund goes back to
+  paidBy?: string;
+};
 export type Approval = {
   call: Call;
   // warden's note for the owner, built from facts only; advice, not a verdict
   brief?: string;
   // approving this one needs the owner's passkey
   needsPasskey?: boolean;
+  // which reads of untrusted content carried this payee or amount; ids only, no content
+  trail?: Trail;
   expiresAt: string | null;
   requestedAt: string | null;
 };

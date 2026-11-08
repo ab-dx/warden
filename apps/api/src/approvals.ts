@@ -30,7 +30,7 @@ export async function pendingApprovals(ledger: Ledger, temporal: TemporalClient)
       ? (JSON.parse(requested.dataJson) as { approvalRequested?: { expiresAt?: string } })
           .approvalRequested?.expiresAt
       : undefined;
-    out.push({ call: c, expiresAt, requestedAt: requested?.occurredAt });
+    out.push({ call: c, entries, expiresAt, requestedAt: requested?.occurredAt });
   }
   return out;
 }

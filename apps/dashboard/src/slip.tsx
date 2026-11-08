@@ -1,7 +1,7 @@
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { type Approval, api } from './api.js';
+import { type Approval, api, type Trail } from './api.js';
 import { ago, checkName, forUser, left, money, toolName } from './format.js';
 
 function useNow(ms = 1000) {
@@ -53,6 +53,10 @@ export function Slip({ a }: { a: Approval }) {
           {money(call.amount)}
         </p>
       </div>
+
+      {a.trail && (a.trail.reads.length > 0 || a.trail.paidBy) && (
+        <PaperTrail a={a} trail={a.trail} now={now} />
+      )}
 
       <div className="border-t border-rule px-6 py-4">
         <p className="text-sm font-medium text-held">Held because</p>
@@ -108,5 +112,61 @@ export function Slip({ a }: { a: Approval }) {
         </p>
       )}
     </article>
+  );
+}
+
+const Step = ({ children, last }: { children: React.ReactNode; last?: boolean }) => (
+  <li className="relative pl-6">
+    {!last && (
+      <span className="absolute left-[5px] top-4 bottom-[-12px] w-px bg-rule" aria-hidden="true" />
+    )}
+    <span
+      className="absolute left-0 top-[7px] h-[11px] w-[11px] rounded-full border-2 border-ink bg-sheet"
+      aria-hidden="true"
+    />
+    {children}
+  </li>
+);
+
+const Tag = ({ children }: { children: React.ReactNode }) => (
+  <span className="ml-2 rounded-sm bg-held/10 px-1.5 py-0.5 text-xs font-medium text-held">
+    {children}
+  </span>
+);
+
+// where the payment came from, step by step: what the agent read, what it asked for, who held it
+function PaperTrail({ a, trail, now }: { a: Approval; trail: Trail; now: number }) {
+  const { call } = a;
+  const held = [...new Set((call.reasons ?? []).map((r) => checkName(r.check)))];
+  return (
+    <div className="border-t border-rule px-6 py-4">
+      <p className="text-sm font-medium text-ink-soft">Paper trail</p>
+      <ol className="mt-2 space-y-3 text-[15px] leading-relaxed">
+        {trail.reads.map((r) => (
+          <Step key={`${r.tool}-${r.ref}-${r.at}`}>
+            The agent read{' '}
+            <code className="font-mono text-sm">{[r.tool, r.ref].filter(Boolean).join(' ')}</code>
+            <span className="text-sm text-ink-soft"> · {ago(r.at, now)}</span>
+            <div>
+              {r.payee && <Tag>has this payee</Tag>}
+              {r.amount && <Tag>has this amount</Tag>}
+            </div>
+          </Step>
+        ))}
+        <Step>
+          It asked for a {toolName(call.tool ?? '').toLowerCase()} of {money(call.amount)} to{' '}
+          <span className="font-medium [overflow-wrap:anywhere]">
+            {call.counterparty ?? 'an unknown payee'}
+          </span>
+          {trail.paidBy && (
+            <div className="text-sm text-ink-soft">
+              PayPal says the original payment came from{' '}
+              <span className="font-medium text-ink">{trail.paidBy}</span>.
+            </div>
+          )}
+        </Step>
+        <Step last>Held by {held.length ? held.join(', ') : 'Warden'}, waiting for you.</Step>
+      </ol>
+    </div>
   );
 }

@@ -24,6 +24,7 @@ import {
   type CallSummary,
   CallSummarySchema,
   GetCallResponseSchema,
+  type LedgerEntry,
   MandateSchema,
   type PolicyService,
   VerifyChainResponseSchema,
@@ -38,6 +39,7 @@ import type { Passkeys } from './passkey.js';
 import type { Sessions } from './session.js';
 import { today } from './stats.js';
 import { mandateClaims } from './token.js';
+import { intentOf, trail } from './trail.js';
 
 export const DEPS = Symbol('deps');
 export type Deps = {
@@ -184,11 +186,23 @@ export class ApiController {
       rows.map(async (r) => ({
         call: toJson(CallSummarySchema, r.call),
         brief: await this.deps.brief(r.call),
+        trail: await this.trail(r.call, r.entries),
         needsPasskey: this.deps.passkeys?.needs(r.call, true) ?? false,
         expiresAt: r.expiresAt ?? null,
         requestedAt: r.requestedAt ? timestampDate(r.requestedAt).toISOString() : null,
       })),
     );
+  }
+
+  // advice for the owner, so a ledger hiccup leaves it out rather than failing the list
+  private async trail(call: CallSummary, entries: LedgerEntry[]) {
+    const session = intentOf(entries)?.sessionId;
+    try {
+      const reads = session ? (await this.deps.ledger.getCall({ callId: session })).entries : [];
+      return trail(call, entries, reads);
+    } catch {
+      return trail(call, entries, []);
+    }
   }
 
   // whether approvals can need a passkey, and whether the owner has set one up
