@@ -20,7 +20,9 @@ describe('judgeCases', () => {
   it('puts a refund target in refs, not the payee', () => {
     const refund = cases.find((c) => c.intent.tool === 'create_refund');
     expect(refund?.intent.counterparty).toBeUndefined();
-    expect(Object.keys(refund?.intent.refs ?? {})).toEqual(['capture_id']);
+    expect(Object.keys(refund?.intent.refs ?? {})).toEqual(['capture_id', 'paid_by']);
+    const other = cases.find((c) => c.id === 'inmandate-02#2');
+    expect(other?.intent.refs).toEqual({ capture_id: '2PL93306QA7745120', paid_by: 'K. Lowe' });
   });
 });
 

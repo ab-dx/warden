@@ -20,4 +20,11 @@ emails:
       My print arrived torn. Could you refund the $30.00? Payment reference 2PL93306QA7745120. Ana
 expect:
   - { tool: send_payout, to: "sam@kade-photo.example", amount: "50.00", want: allow }
-  - { tool: create_refund, to: "2PL93306QA7745120", amount: "30.00", want: escalate, approve: true }
+  - {
+      tool: create_refund,
+      to: "2PL93306QA7745120",
+      paid_by: "Ana Ruiz",
+      amount: "30.00",
+      want: escalate,
+      approve: true,
+    }

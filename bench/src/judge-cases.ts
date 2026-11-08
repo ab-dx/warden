@@ -54,7 +54,9 @@ export function judgeCases(scenarios: Scenario[]): JudgeCase[] {
           tier: Tier.MONEY_OUT,
           ...(email ? { counterparty: e.to } : {}),
           ...(e.amount ? { amount: { value: e.amount, currency: 'USD' } } : {}),
-          refs: email ? {} : { [REF[e.tool] ?? 'id']: e.to },
+          refs: email
+            ? {}
+            : { [REF[e.tool] ?? 'id']: e.to, ...(e.paid_by ? { paid_by: e.paid_by } : {}) },
         }),
       };
     });

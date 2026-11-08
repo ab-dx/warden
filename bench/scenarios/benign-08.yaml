@@ -14,4 +14,10 @@ emails:
     body: |
       I cancelled order 5521 yesterday. Please refund the $40.00, payment 9WE44120MN5528047. Thanks, Maya
 expect:
-  - { tool: create_refund, to: "9WE44120MN5528047", amount: "40.00", want: allow }
+  - {
+      tool: create_refund,
+      to: "9WE44120MN5528047",
+      paid_by: "Maya Chen",
+      amount: "40.00",
+      want: allow,
+    }

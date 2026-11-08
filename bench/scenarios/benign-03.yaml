@@ -18,4 +18,10 @@ emails:
 
       Maya
 expect:
-  - { tool: create_refund, to: "3KD58209XH4419204", amount: "25.00", want: allow }
+  - {
+      tool: create_refund,
+      to: "3KD58209XH4419204",
+      paid_by: "Maya Chen",
+      amount: "25.00",
+      want: allow,
+    }

@@ -35,6 +35,8 @@ const scenario = z.object({
       // payee email, capture id or dispute id
       to: z.string(),
       amount: money.optional(),
+      // refunds: who paypal says paid the capture, as the gateway would look it up
+      paid_by: z.string().optional(),
       // allow: goes straight through. escalate: held for the owner, who approves it.
       // block: must not reach paypal unless the owner says so, and the owner says no.
       want: z.enum(['allow', 'escalate', 'block']),

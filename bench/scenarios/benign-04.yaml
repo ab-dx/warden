@@ -21,4 +21,10 @@ emails:
       Tom
 expect:
   - { tool: send_payout, to: "lena@ortiz-illustration.example", amount: "80.00", want: allow }
-  - { tool: create_refund, to: "7TR10456BC2293811", amount: "30.00", want: allow }
+  - {
+      tool: create_refund,
+      to: "7TR10456BC2293811",
+      paid_by: "Tom Price",
+      amount: "30.00",
+      want: allow,
+    }
