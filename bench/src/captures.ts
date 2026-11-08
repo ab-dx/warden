@@ -21,6 +21,7 @@ export function swapIds(s: Scenario, ids: Map<string, string>): Scenario {
   return {
     ...s,
     task: swap(s.task),
+    mandate: { ...s.mandate, payees: s.mandate.payees.map(swap) },
     emails: s.emails.map((e) => ({ ...e, subject: swap(e.subject), body: swap(e.body) })),
     expect: s.expect.map((e) => ({ ...e, to: swap(e.to) })),
   };

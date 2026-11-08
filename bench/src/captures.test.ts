@@ -24,5 +24,7 @@ describe('real captures for refunds', () => {
     expect(s.task).toContain('0AB12345CD6789012');
     expect(JSON.stringify([s.task, s.emails, s.expect])).not.toContain('3KD58209XH4419204');
     expect(s.expect[0]?.to).toBe('0AB12345CD6789012');
+    // the owner named that payment in the mandate, so the real one must be named there
+    expect(s.mandate.payees).toEqual(['0AB12345CD6789012']);
   });
 });
