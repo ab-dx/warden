@@ -32,11 +32,56 @@ export async function getCapture(
     id?: string;
     status?: string;
     amount?: { value: string; currency_code: string };
+    supplementary_data?: { related_ids?: { order_id?: string } };
     name?: string;
   };
   if (!res.ok || !body.id) return fail(body.name ?? `HTTP_${res.status}`, 'capture lookup failed');
-  const text = JSON.stringify({ id: body.id, status: body.status, amount: body.amount });
+  const orderId = body.supplementary_data?.related_ids?.order_id;
+  const paidBy = orderId ? await payer(base, tokens, orderId, fetchImpl) : undefined;
+  const text = JSON.stringify({
+    id: body.id,
+    status: body.status,
+    amount: body.amount,
+    ...(paidBy ? { paid_by: paidBy } : {}),
+  });
   return { ok: true, upstreamRef: body.id, content: [{ type: 'text', text }] };
+}
+
+type Name = { given_name?: string; surname?: string };
+type Order = {
+  payer?: { name?: Name; email_address?: string };
+  payment_source?: {
+    card?: { name?: string };
+    paypal?: { name?: Name; email_address?: string };
+  };
+};
+
+const fullName = (n?: Name) => [n?.given_name, n?.surname].filter(Boolean).join(' ');
+
+// the capture doesn't say who paid, its order does: the paypal account or the cardholder.
+// best effort, a refund can still be checked on its amount without it
+async function payer(
+  base: string,
+  tokens: TokenProvider,
+  orderId: string,
+  fetchImpl: typeof fetch,
+) {
+  if (!/^[A-Za-z0-9_-]{10,32}$/.test(orderId)) return undefined;
+  try {
+    const res = await fetchImpl(`${base}/v2/checkout/orders/${orderId}`, {
+      headers: { authorization: `Bearer ${await tokens.get()}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return undefined;
+    const o = (await res.json()) as Order;
+    const who = o.payer ?? o.payment_source?.paypal;
+    const name = fullName(who?.name) || o.payment_source?.card?.name || '';
+    const email = who?.email_address;
+    const out = email ? `${name} <${email}>`.trim() : name;
+    return out ? out.slice(0, 120) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function fail(errorCode: string, message: string): PayoutResult {

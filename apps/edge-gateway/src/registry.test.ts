@@ -46,13 +46,22 @@ describe('normalise', () => {
     });
   });
 
-  it('uses a refund amount when given, without a lookup', async () => {
+  it('uses the refund amount the agent gave over the captured one', async () => {
     const n = await normalise(
       'create_refund',
       { capture_id: 'CAP123456789012345', amount: { value: '5.00', currency_code: 'USD' } },
-      noLookup,
+      lookupFrom({ get_capture: { amount: { value: '89.00', currency_code: 'USD' } } }),
     );
     expect(n.amount).toEqual({ value: '5.00', currency: 'USD' });
+  });
+
+  it('names who paid the refunded capture, as paypal reports it', async () => {
+    const n = await normalise(
+      'create_refund',
+      { capture_id: 'CAP123456789012345', amount: { value: '48.00', currency_code: 'USD' } },
+      lookupFrom({ get_capture: { paid_by: 'Kim Lowe <k@x.example>' } }),
+    );
+    expect(n.refs).toEqual({ capture_id: 'CAP123456789012345', paid_by: 'Kim Lowe <k@x.example>' });
   });
 
   it('looks up the capture when a refund leaves the amount out', async () => {

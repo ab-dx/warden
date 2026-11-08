@@ -72,15 +72,16 @@ const NORMALISERS: Record<string, Normaliser> = {
 
   async create_refund(args, lookup) {
     const id = str(args.capture_id);
+    const capture = id ? await lookup('get_capture', { capture_id: id }) : undefined;
     // no amount means paypal refunds whatever is left on the capture, which is at most
     // the captured amount, so checking against that is safe
-    const amount =
-      paypalMoney(args.amount) ??
-      (id ? paypalMoney((await lookup('get_capture', { capture_id: id }))?.amount) : undefined);
+    const amount = paypalMoney(args.amount) ?? paypalMoney(capture?.amount);
+    // who paypal says paid, so a refund to someone the owner didn't name can be caught
+    const paidBy = str(capture?.paid_by);
     return {
       ...(amount ? { amount } : {}),
       ...(id ? { counterparty: id } : {}),
-      refs: ref('capture_id', id),
+      refs: { ...ref('capture_id', id), ...ref('paid_by', paidBy?.slice(0, 120)) },
     };
   },
 
