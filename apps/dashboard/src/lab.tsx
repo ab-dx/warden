@@ -26,7 +26,9 @@ const RESULT: Record<LabStep['result'], { label: string; tone: string }> = {
 };
 
 function Run({ title, run }: { title: string; run: LabRun | undefined }) {
-  const steps = run?.steps.filter((s) => s.tool !== 'list_emails') ?? [];
+  // the agent's follow-up checks on a held payment only repeat it
+  const steps =
+    run?.steps.filter((s) => s.tool !== 'list_emails' && s.tool !== 'warden_check_approval') ?? [];
   return (
     <section className="rounded-sm border border-rule bg-sheet p-5" aria-live="polite">
       <h3 className="font-semibold">{title}</h3>
