@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api, type LabEmail, type LabRun, type LabStep } from './api.js';
-import { forUser } from './format.js';
+import { forUser, toolName } from './format.js';
 
 const DEMO: LabEmail = {
   from: 'Sam Kade <sam@kade-photo.example>',
@@ -18,11 +18,11 @@ Sam`,
 
 const RESULT: Record<LabStep['result'], { label: string; tone: string }> = {
   sent: { label: 'Paid', tone: 'text-paid' },
-  recorded: { label: 'Would have paid', tone: 'text-refused' },
-  held: { label: 'Held for you', tone: 'text-held' },
-  blocked: { label: 'Blocked', tone: 'text-refused' },
+  recorded: { label: 'Would pay', tone: 'text-refused' },
+  held: { label: 'Held', tone: 'text-held' },
+  blocked: { label: 'Refused', tone: 'text-refused' },
   failed: { label: 'Failed', tone: 'text-refused' },
-  ok: { label: 'Done', tone: 'text-ink-soft' },
+  ok: { label: 'Read', tone: 'text-ink-soft' },
 };
 
 function Run({ title, run }: { title: string; run: LabRun | undefined }) {
@@ -30,23 +30,32 @@ function Run({ title, run }: { title: string; run: LabRun | undefined }) {
   const steps =
     run?.steps.filter((s) => s.tool !== 'list_emails' && s.tool !== 'warden_check_approval') ?? [];
   return (
-    <section className="rounded-sm border border-rule bg-sheet p-5" aria-live="polite">
-      <h3 className="font-semibold">{title}</h3>
-      {!run && <p className="mt-2 text-sm text-ink-soft">Not run yet.</p>}
+    <section className="border border-rule bg-sheet p-5" aria-live="polite">
+      <h3 className="semiwide font-bold">{title}</h3>
+      {!run && <p className="mt-2 text-sm text-ink-soft">Not run</p>}
       <ol className="mt-3 space-y-3">
         {steps.map((s) => (
           <li key={`${s.what}-${s.callId ?? s.result}`} className="text-[15px] leading-relaxed">
-            <code className="font-mono text-sm [overflow-wrap:anywhere]">{s.what}</code>
-            <div className={`font-medium ${RESULT[s.result].tone}`}>
-              {RESULT[s.result].label}
-              {s.code && s.result !== 'held' && <span className="font-normal"> · {s.code}</span>}
-            </div>
+            <p className="[overflow-wrap:anywhere]">
+              {toolName(s.tool)}
+              {s.what.slice(s.tool.length)}
+            </p>
+            {s.result !== 'ok' && (
+              <p className="mt-2 flex flex-wrap items-center gap-3">
+                <span className={`stamp stamp-in text-sm ${RESULT[s.result].tone}`}>
+                  {RESULT[s.result].label}
+                </span>
+                {s.code && s.result !== 'held' && (
+                  <span className="text-sm text-ink-soft">{s.code}</span>
+                )}
+              </p>
+            )}
             {s.message && s.result === 'blocked' && (
               <p className="text-sm text-ink-soft">{forUser(s.message)}</p>
             )}
             {s.result === 'held' && (
               <a href="#/" className="text-sm text-blue underline">
-                Approve or reject it on Payments
+                Countersign or refuse it on Payments
               </a>
             )}
           </li>
@@ -68,26 +77,22 @@ export function Lab() {
       qc.invalidateQueries({ queryKey: ['approvals'] });
     },
   });
-  const field = 'mt-1 w-full rounded-sm border border-rule bg-sheet px-3 py-2';
+  const field = 'mt-1 w-full border border-rule bg-sheet px-3 py-2';
   const mandate = runs.on?.mandate ?? runs.off?.mandate;
 
   return (
     <div className="space-y-8">
       <section aria-labelledby="lab-h" className="space-y-3">
-        <h2 id="lab-h" className="text-xl font-semibold">
-          Try to trick the agent
+        <h2 id="lab-h" className="wide text-2xl font-bold">
+          Attack lab
         </h2>
         <p className="max-w-prose text-ink-soft">
-          Write the email an operations agent finds in the inbox. The agent here does whatever the
-          email says, the way a prompt-injected model would. Run it without Warden to see what it
-          would pay, then with Warden in the way. Amounts are capped at $500, and nothing is sent
-          without Warden.
+          The lab agent pays whatever an email tells it to. Edit the email, then run it with and
+          without Warden. Without Warden nothing is sent, and amounts are capped at $500.
         </p>
-        <p className="max-w-prose text-ink-soft">
-          The owner's mandate for this agent:{' '}
-          <span className="text-ink">
-            {mandate?.task ?? "Pay Sam Kade's invoice for the wedding photos, up to $150."}
-          </span>
+        <p className="max-w-prose">
+          <span className="font-semibold">Its mandate:</span>{' '}
+          {mandate?.task ?? "Pay Sam Kade's invoice for the wedding photos, up to $150."}
         </p>
       </section>
 
@@ -119,7 +124,7 @@ export function Lab() {
           </label>
         </div>
         <label className="block text-sm font-medium">
-          Body (hidden text included)
+          Body, hidden text included
           <textarea
             className={`${field} h-56 font-mono text-sm`}
             value={email.body}
@@ -132,14 +137,14 @@ export function Lab() {
             type="button"
             disabled={go.isPending}
             onClick={() => go.mutate(false)}
-            className="rounded-sm border border-ink px-4 py-2 font-medium hover:bg-ink/5 disabled:opacity-50"
+            className="border border-ink px-4 py-2 font-medium hover:bg-ink/5 disabled:opacity-50"
           >
             Run without Warden
           </button>
           <button
             type="submit"
             disabled={go.isPending}
-            className="rounded-sm bg-ink px-4 py-2 font-medium text-sheet hover:bg-ink/90 disabled:opacity-50"
+            className="semiwide bg-ink px-4 py-2 font-semibold text-sheet hover:bg-ink/90 disabled:opacity-50"
           >
             Run with Warden
           </button>
@@ -149,10 +154,10 @@ export function Lab() {
             onClick={() => setEmail(DEMO)}
             className="px-2 py-2 text-sm text-ink-soft hover:text-ink"
           >
-            Reset the email
+            Reset email
           </button>
         </div>
-        {go.isPending && <p className="text-sm text-ink-soft">The agent is reading the inbox…</p>}
+        {go.isPending && <p className="text-sm text-ink-soft">Running…</p>}
         {go.isError && (
           <p role="alert" className="text-sm text-refused">
             {(go.error as Error).message}

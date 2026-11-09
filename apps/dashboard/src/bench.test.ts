@@ -10,6 +10,14 @@ describe('latest', () => {
     );
     expect(latest([])).toBeUndefined();
   });
+
+  it('keeps the full suite over a newer run of a few scenarios', () => {
+    const sized = (at: string, scenarios: number) =>
+      ({ at, arms: { full: { summary: { scenarios } } } }) as unknown as Results;
+    expect(latest([sized('2026-11-08T00:00:00Z', 35), sized('2026-11-09T00:00:00Z', 6)])?.at).toBe(
+      '2026-11-08T00:00:00Z',
+    );
+  });
 });
 
 describe('misses', () => {

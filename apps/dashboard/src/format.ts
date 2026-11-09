@@ -26,18 +26,23 @@ export const toolName = (t: string) =>
 
 export const STATUS: Record<string, { label: string; tone: string }> = {
   received: { label: 'Passed through', tone: 'text-ink-soft' },
-  pending_approval: { label: 'Waiting for you', tone: 'text-held' },
+  pending_approval: { label: 'Held', tone: 'text-held' },
   allowed: { label: 'Allowed', tone: 'text-paid' },
-  denied: { label: 'Blocked', tone: 'text-refused' },
-  executed: { label: 'Completed', tone: 'text-paid' },
-  failed: { label: 'PayPal refused', tone: 'text-refused' },
+  denied: { label: 'Refused', tone: 'text-refused' },
+  executed: { label: 'Paid', tone: 'text-paid' },
+  failed: { label: 'Declined by PayPal', tone: 'text-refused' },
   unknown: { label: 'Unconfirmed', tone: 'text-held' },
 };
 
 // policy reasons are written for the agent ("ask the user..."); the first sentence is the part for a person.
 // some checks write lowercase fragments, so finish them as sentences, but never capitalise an email
 export function forUser(message: string) {
-  const first = (message.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? message).trim();
+  const first = (message.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? message)
+    .trim()
+    // reasons are written about "the user"; the person reading this is them
+    .replace(/\bthe user didn't\b/gi, "you didn't")
+    .replace(/\bthe user\b/gi, 'you')
+    .replace(/\bthe owner's\b/gi, 'your');
   const cased = /^[a-z][^\s@]*(\s|$)/.test(first)
     ? first[0]?.toUpperCase() + first.slice(1)
     : first;

@@ -44,7 +44,7 @@ function Row({ m }: { m: Mandate }) {
   return (
     <li className={`border-t border-rule py-4 ${active ? '' : 'text-ink-soft'}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <p className="text-lg font-medium">“{m.task}”</p>
+        <p className="semiwide text-lg font-semibold">“{m.task}”</p>
         {active ? (
           <span className="flex gap-4 text-sm">
             <button
@@ -79,7 +79,7 @@ function Row({ m }: { m: Mandate }) {
           : ', to anyone'}
         .
       </p>
-      <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-rule" aria-hidden="true">
+      <div className="mt-2 flex h-1.5 overflow-hidden bg-rule" aria-hidden="true">
         <div className="bg-ink" style={{ width: `${spent}%` }} />
         <div className="bg-held" style={{ width: `${held}%` }} />
       </div>
@@ -103,7 +103,7 @@ function PasskeySetup() {
   });
   if (!status.data?.required || status.data.registered) return null;
   return (
-    <div className="rounded-sm border border-held bg-sheet p-4">
+    <div className="border border-held bg-sheet p-4">
       <p className="font-medium">Set up a passkey for big approvals</p>
       <p className="text-sm text-ink-soft">
         Approving a payment above your step-up limit needs a passkey, so a stolen session or chat
@@ -113,7 +113,7 @@ function PasskeySetup() {
         type="button"
         onClick={() => setup.mutate()}
         disabled={setup.isPending}
-        className="mt-2 rounded-sm bg-ink px-3 py-1.5 text-sm font-medium text-sheet disabled:opacity-50"
+        className="mt-2 bg-ink px-3 py-1.5 text-sm font-medium text-sheet disabled:opacity-50"
       >
         Set up passkey
       </button>
@@ -171,22 +171,22 @@ export function Mandates() {
   const payeesMissing = draft.data?.namedPayees === true && form.payees.trim() === '';
   const [allPast, setAllPast] = useState(false);
   const active = (q.data ?? []).filter((m) => m.status === 'MANDATE_STATUS_ACTIVE');
-  const past = (q.data ?? []).filter((m) => m.status !== 'MANDATE_STATUS_ACTIVE');
+  // the lab grants and revokes a mandate on every run; those aren't the owner's history
+  const past = (q.data ?? []).filter(
+    (m) => m.status !== 'MANDATE_STATUS_ACTIVE' && m.agentId !== 'lab-agent',
+  );
   const submit = (e: FormEvent) => {
     e.preventDefault();
     create.mutate();
   };
-  const field = 'mt-1 block w-full rounded-sm border border-rule bg-sheet px-3 py-2';
+  const field = 'mt-1 block w-full border border-rule bg-sheet px-3 py-2';
 
   return (
     <section className="space-y-8">
       <PasskeySetup />
       <div>
-        <h2 className="text-lg font-semibold">What your agent may do</h2>
-        <p className="text-ink-soft">
-          A mandate lets the agent pay without asking you, within limits you set. Anything outside
-          it comes to you.
-        </p>
+        <h2 className="wide text-2xl font-bold">Mandates</h2>
+        <p className="text-ink-soft">Payments inside a mandate go through without asking you.</p>
         <ul className="mt-3">
           {[...active, ...(allPast ? past : past.slice(0, 5))].map((m) => (
             <Row key={m.id} m={m} />
@@ -203,18 +203,16 @@ export function Mandates() {
         )}
         {q.data?.length === 0 && (
           <p className="mt-3 text-ink-soft">
-            No mandates yet, so every payment will ask you first.
+            None yet. Until you grant one, every payment waits for you.
           </p>
         )}
       </div>
 
       <form onSubmit={submit} className="space-y-4 border-t-2 border-ink pt-6">
-        <h2 className="text-lg font-semibold">Give the agent a mandate</h2>
-        <div className="space-y-2 rounded-sm border border-rule bg-sheet p-4">
+        <h2 className="semiwide text-lg font-bold">New mandate</h2>
+        <div className="space-y-2 border border-rule bg-sheet p-4">
           <label className="block">
-            <span className="text-sm font-medium">
-              Or describe it, and Warden fills in the form
-            </span>
+            <span className="text-sm font-medium">Describe it in your own words</span>
             <textarea
               rows={2}
               value={words}
@@ -227,13 +225,13 @@ export function Mandates() {
             type="button"
             onClick={() => draft.mutate()}
             disabled={draft.isPending || words.trim() === ''}
-            className="rounded-sm border border-ink px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+            className="border border-ink px-3 py-1.5 text-sm font-medium disabled:opacity-50"
           >
-            {draft.isPending ? 'Reading…' : 'Fill in the form'}
+            {draft.isPending ? 'Filling in…' : 'Fill in the form'}
           </button>
           {draft.isSuccess && (
             <div className="text-sm" aria-live="polite">
-              <p>Check every field below, then grant it. Nothing is allowed until you do.</p>
+              <p>Filled in below. Check it before you grant it.</p>
               {draft.data.dropped.length > 0 && (
                 <ul className="mt-1 list-disc pl-5 text-held">
                   {draft.data.dropped.map((d) => (
@@ -346,7 +344,7 @@ export function Mandates() {
         <button
           type="submit"
           disabled={create.isPending || form.tools.length === 0 || payeesMissing}
-          className="rounded-sm bg-ink px-4 py-2 font-medium text-sheet disabled:opacity-50"
+          className="semiwide bg-ink px-4 py-2 font-semibold text-sheet disabled:opacity-50"
         >
           Grant mandate
         </button>

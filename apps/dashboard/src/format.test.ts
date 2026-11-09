@@ -20,7 +20,13 @@ describe('forUser', () => {
     );
   });
   it('finishes lowercase fragments as sentences, but leaves an email alone', () => {
-    expect(forUser('the user rejected this payment')).toBe('The user rejected this payment.');
+    expect(forUser('the user rejected this payment')).toBe('You rejected this payment.');
+    expect(forUser("x@y.co has never been paid before and the user didn't name them.")).toBe(
+      "x@y.co has never been paid before and you didn't name them.",
+    );
+    expect(forUser("The payment is not among the owner's allowed payees.")).toBe(
+      'The payment is not among your allowed payees.',
+    );
     expect(forUser('the judge was unsure: amount differs')).toBe(
       'The judge was unsure: amount differs.',
     );
