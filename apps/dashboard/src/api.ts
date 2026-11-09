@@ -84,6 +84,17 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return data as T;
 }
 
+export type LabStep = {
+  tool: string;
+  what: string;
+  result: 'ok' | 'sent' | 'recorded' | 'held' | 'blocked' | 'failed';
+  code?: string;
+  message?: string;
+  callId?: string;
+};
+export type LabRun = { steps: LabStep[]; mandate: { task: string; payees: string[] } };
+export type LabEmail = { from: string; subject: string; body: string };
+
 // a proposed mandate from the owner's words; only fills the form
 export type Draft = {
   task: string;
@@ -112,6 +123,8 @@ export const api = {
   login: (password: string) => call<void>('POST', '/api/session', { password }),
   logout: () => call<void>('DELETE', '/api/session'),
   approvals: () => call<Approval[]>('GET', '/api/approvals'),
+  lab: (email: LabEmail, guarded: boolean) =>
+    call<LabRun>('POST', '/api/lab/run', { email, guarded }),
   stats: () => call<Stats>('GET', '/api/stats'),
   mandateToken: (id: string) =>
     call<{ token: string; kid: string }>('GET', `/api/mandates/${id}/token`),

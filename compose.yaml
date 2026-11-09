@@ -247,6 +247,8 @@ services:
     ports: ["127.0.0.1:7010:7010"]
     environment:
       SEED_FILE: /seed/sandbox.json
+      # the attack lab's agent goes through warden like any other
+      LAB_WARDEN_URL: http://edge-gateway:7000/mcp
     volumes: ["./.seed:/seed:ro"]
     depends_on: {}
 
@@ -275,6 +277,7 @@ services:
     environment:
       <<: *internal
       DASHBOARD_DIR: /app/dashboard
+      LAB_URL: http://inbox:7010
       PASSKEY_FILE: /home/nonroot/passkey.json
     # the owner's passkey; mounted on the non-root home so the volume starts out writable
     volumes:

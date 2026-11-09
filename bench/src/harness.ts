@@ -3,11 +3,18 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { chatCompletions, intentJudge } from '@warden/judge-service/intent';
-import { AGENT_TOOLS, type Brain, llmBrain, runAgent, scriptedBrain } from '@warden/ops-agent';
+import {
+  AGENT_TOOLS,
+  type Brain,
+  llmBrain,
+  recordingPayPal,
+  runAgent,
+  scriptedBrain,
+} from '@warden/ops-agent';
 import pg from 'pg';
 import { z } from 'zod';
 import { withRealCaptures } from './captures.js';
-import { directPayPal } from './direct.js';
+
 import { judgeCases } from './judge-cases.js';
 import { loadScenarios, type Scenario } from './scenario.js';
 import { type Asked, grade, type LedgerCall, ledgerCheck, markAsked, tracker } from './score.js';
@@ -275,7 +282,7 @@ export async function harness() {
   const tools = (
     await toolsAt(env.WARDEN_MCP_URL, { authorization: `Bearer ${env.BENCH_AGENT_KEY}` })
   ).filter((t) => t.name !== 'warden_check_approval' && !inboxTools.has(t.name));
-  const direct = await directPayPal(tools);
+  const direct = await recordingPayPal(tools);
   return {
     run: (arm: Arm, s: Scenario, driver: Driver) =>
       runScenario(arm, s, driver, call, db, direct.url),

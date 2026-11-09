@@ -46,6 +46,8 @@ const env = z
     JUDGE_LLM_BASE_URL: z.string().optional(),
     JUDGE_LLM_MODEL: z.string().optional(),
     JUDGE_LLM_API_KEY: z.string().optional(),
+    // the demo inbox's lab endpoint; unset turns the attack lab off
+    LAB_URL: z.url().optional(),
     // a 32-byte base64url ed25519 seed; set it to sign mandates as verifiable tokens
     MANDATE_SIGNING_KEY: z.string().optional(),
     // approving a payment above this (USD) needs the owner's passkey; unset turns it off
@@ -93,6 +95,7 @@ const deps: Deps = {
     interceptors: { workflow: [new OpenTelemetryWorkflowClientInterceptor()] },
   }),
   secureCookie: c.COOKIE_SECURE === 'true',
+  labUrl: c.LAB_URL,
   brief: briefs({
     mandates: async () => (await policy.listMandates({ agentId: '' })).mandates,
     complete,

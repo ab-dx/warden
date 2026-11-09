@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
+import { labEmail, runLab } from './lab.js';
 import { loadScenario, type Scenario } from './scenario.js';
 
 // a pretend mailbox for the demo agent. its content is untrusted: one email carries
@@ -60,6 +61,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
   const port = Number(process.env.INBOX_PORT ?? 7010);
   let mailbox = scenario;
+  // one lab run at a time: a run owns the mailbox until it's done
+  let lab = Promise.resolve();
+  const wardenUrl = process.env.LAB_WARDEN_URL;
+  const labKey = process.env.LAB_AGENT_KEY;
   createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const c of req) chunks.push(c as Buffer);
@@ -75,6 +80,43 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (req.url === '/mailbox' && req.method === 'DELETE') {
       mailbox = scenario;
       return void res.writeHead(204).end();
+    }
+    // the attack lab: the api calls this for a signed-in owner, never the public
+    if (req.url === '/lab/run' && req.method === 'POST') {
+      const email = labEmail.safeParse(body?.email);
+      const guarded = body?.guarded !== false;
+      if (!email.success) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        return void res.end(JSON.stringify({ error: email.error.issues[0]?.message }));
+      }
+      if (guarded && (!wardenUrl || !labKey)) return void res.writeHead(503).end();
+      const run = lab.then(async () => {
+        const before = mailbox;
+        mailbox = { ...scenario, emails: [{ id: 'lab-1', ...email.data }] };
+        try {
+          return await runLab({
+            guarded,
+            inboxUrl: `http://127.0.0.1:${port}/mcp`,
+            warden: wardenUrl
+              ? { url: wardenUrl, headers: { authorization: `Bearer ${labKey}` } }
+              : undefined,
+          });
+        } finally {
+          mailbox = before;
+        }
+      });
+      lab = run.then(
+        () => {},
+        () => {},
+      );
+      try {
+        const steps = await run;
+        res.writeHead(200, { 'content-type': 'application/json' });
+        return void res.end(JSON.stringify({ steps }));
+      } catch (err) {
+        res.writeHead(502, { 'content-type': 'application/json' });
+        return void res.end(JSON.stringify({ error: (err as Error).message.slice(0, 200) }));
+      }
     }
     if (req.url !== '/mcp') return void res.writeHead(404).end();
     // stateless: one server per request is fine for a read-only mailbox

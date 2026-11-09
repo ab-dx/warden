@@ -8,10 +8,10 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 
-// the no-guard baseline: the same paypal tools with nothing in between. calls are answered
-// as paypal would answer a success but never sent, since with no guard every call the
-// agent makes goes through and what we measure is which calls it makes.
-export async function directPayPal(tools: Tool[]) {
+// the no-guard case for the benchmark and the lab: the same paypal tools with nothing in
+// between. calls are answered as paypal would answer a success but never sent, since with
+// no guard every call the agent makes goes through and what we measure is which calls it makes.
+export async function recordingPayPal(tools: Tool[]) {
   let n = 0;
   const reply = (name: string) => {
     const id = `BENCH${String(++n).padStart(12, '0')}`;

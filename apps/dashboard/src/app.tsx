@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import { Bench } from './bench.js';
+import { Lab } from './lab.js';
 import { Mandates } from './mandates.js';
 import { Activity, Approvals, Evidence, Login, Today } from './screens.js';
 
@@ -35,7 +36,9 @@ export function App() {
       ? 'mandates'
       : hash === '#/bench'
         ? 'bench'
-        : 'home';
+        : hash === '#/lab'
+          ? 'lab'
+          : 'home';
   const tab = (href: string, label: string, here: boolean, count = 0) => (
     <a
       href={href}
@@ -61,6 +64,7 @@ export function App() {
           <nav className="flex gap-4 sm:gap-6">
             {tab('#/', 'Payments', page === 'home' || page === 'call', waiting)}
             {tab('#/mandates', 'Mandates', page === 'mandates')}
+            {tab('#/lab', 'Try it', page === 'lab')}
             {tab('#/bench', 'Benchmark', page === 'bench')}
           </nav>
         </div>
@@ -79,6 +83,7 @@ export function App() {
         {page === 'call' && callId && <Evidence id={callId} back={() => (location.hash = '#/')} />}
         {page === 'mandates' && <Mandates />}
         {page === 'bench' && <Bench />}
+        {page === 'lab' && <Lab />}
         {page === 'home' && (
           <>
             <Today />

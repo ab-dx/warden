@@ -11,7 +11,7 @@ const text = (r: Record<string, unknown>) =>
     .join('\n');
 
 // who and how much, for money calls: the part a viewer needs to see
-function label(name: string, args: Record<string, unknown>): string {
+export function label(name: string, args: Record<string, unknown>): string {
   if (name === 'read_email') return `read_email ${args.id}`;
   const amount = (args.amount as { value?: unknown } | undefined)?.value;
   const to = args.receiver_email ?? args.capture_id ?? args.dispute_id;
