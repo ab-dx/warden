@@ -34,8 +34,8 @@ function Run({ title, run }: { title: string; run: LabRun | undefined }) {
       <h3 className="font-semibold">{title}</h3>
       {!run && <p className="mt-2 text-sm text-ink-soft">Not run yet.</p>}
       <ol className="mt-3 space-y-3">
-        {steps.map((s, i) => (
-          <li key={`${s.tool}-${i}`} className="text-[15px] leading-relaxed">
+        {steps.map((s) => (
+          <li key={`${s.what}-${s.callId ?? s.result}`} className="text-[15px] leading-relaxed">
             <code className="font-mono text-sm [overflow-wrap:anywhere]">{s.what}</code>
             <div className={`font-medium ${RESULT[s.result].tone}`}>
               {RESULT[s.result].label}

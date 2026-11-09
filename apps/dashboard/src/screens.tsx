@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { api, type Call } from './api.js';
-import { ago, checkName, forUser, money, STATUS, toolName } from './format.js';
+import { checkName, forUser, money, STATUS, toolName } from './format.js';
+import { ActivityGrid } from './grid.js';
 import { Slip } from './slip.js';
 
 const POLL = { refetchInterval: 2000 };
@@ -103,44 +104,8 @@ export function Activity({ open }: { open: (id: string) => void }) {
       <h2 id="activity-h" className="text-lg font-semibold">
         What your agent did
       </h2>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-left text-[15px]">
-          <thead className="text-sm text-ink-soft">
-            <tr className="border-b border-rule">
-              <th className="py-2 pr-4 font-normal">When</th>
-              <th className="py-2 pr-4 font-normal">Action</th>
-              <th className="py-2 pr-4 font-normal">Payee or reference</th>
-              <th className="py-2 pr-4 text-right font-normal">Amount</th>
-              <th className="py-2 font-normal">Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            {q.data?.map((c) => (
-              <tr key={c.callId} className="border-b border-rule/70 hover:bg-sheet">
-                <td className="py-2 pr-4 text-ink-soft">{ago(c.receivedAt ?? c.updatedAt)}</td>
-                <td className="py-2 pr-4">
-                  <button
-                    type="button"
-                    onClick={() => open(c.callId)}
-                    className="text-blue underline-offset-2 hover:underline"
-                  >
-                    {toolName(c.tool ?? 'unknown')}
-                  </button>
-                </td>
-                <td className="max-w-56 py-2 pr-4 [overflow-wrap:anywhere]">
-                  {c.counterparty ?? ''}
-                </td>
-                <td className="py-2 pr-4 text-right">{c.amount ? money(c.amount) : ''}</td>
-                <td className="py-2">
-                  <StatusWord c={c} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {q.data?.length === 0 && (
-          <p className="py-6 text-ink-soft">Your agent hasn't made any calls yet.</p>
-        )}
+      <div className="mt-3">
+        <ActivityGrid rows={q.data ?? []} open={open} />
       </div>
     </section>
   );
