@@ -52,6 +52,13 @@ describe('llmBrain', () => {
     expect(s.hits()).toBe(3);
   });
 
+  it("says what the provider said when there's no choice in the answer", async () => {
+    const s = await server([
+      (res) => res.end(JSON.stringify({ error: { message: 'tool use not supported' } })),
+    ]);
+    await expect(s.brain.next([], [])).rejects.toThrow(/tool use not supported/);
+  });
+
   it('does not retry a bad key', async () => {
     const s = await server([status(401)]);
     await expect(s.brain.next([], [])).rejects.toThrow(/returned 401/);

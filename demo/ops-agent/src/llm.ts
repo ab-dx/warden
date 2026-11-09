@@ -39,13 +39,17 @@ export function llmBrain(opts: {
           `model endpoint returned ${res.status}: ${(await res.text()).slice(0, 300)}`,
         );
       const body = (await res.json()) as {
-        choices: {
+        error?: { message?: string };
+        choices?: {
           message: {
             content: string | null;
             tool_calls?: { id: string; function: { name: string; arguments: string } }[];
           };
         }[];
       };
+      // openrouter can answer 200 with an error from the provider instead of a choice
+      if (!body.choices?.length)
+        throw new Error(`model endpoint gave no answer: ${body.error?.message ?? 'no choices'}`);
       const m = body.choices[0]?.message;
       return {
         ...(m?.content ? { say: m.content } : {}),
