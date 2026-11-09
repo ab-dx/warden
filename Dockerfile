@@ -1,10 +1,19 @@
 # one image per service: docker build --build-arg APP=edge-gateway .
+
+# just the package manifests, so the install below stays cached until dependencies change.
+# without this every code change reinstalls, and some installs download prebuilt binaries
+FROM node:24-bookworm-slim AS manifests
+WORKDIR /repo
+COPY . .
+RUN find . -type f ! -name package.json ! -name pnpm-lock.yaml ! -name pnpm-workspace.yaml -delete
+
 FROM node:24-bookworm-slim AS build
 RUN npm install -g pnpm@12.16.1
 WORKDIR /repo
-COPY . .
+COPY --from=manifests /repo .
 # installed before APP is read, so every service shares this layer
 RUN pnpm install --frozen-lockfile
+COPY . .
 ARG APP
 RUN test -n "$APP" || (echo "pass --build-arg APP=<service>" && exit 1)
 # the api also serves the dashboard, so build both for it
