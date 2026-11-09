@@ -51,7 +51,9 @@ agents:
   lab-agent:
     require_mandate_for: [T2, T3]
     max_per_call: { value: "150.00", currency: USD }
-    daily_budget: { value: "300.00", currency: USD }
+    # high, so repeated lab runs show the redirect being caught, not the budget running out;
+    # the mandate still caps each payment at $150 and only its payee is paid unattended
+    daily_budget: { value: "5000.00", currency: USD }
     velocity: { max_calls: 6, per_seconds: 60, tiers: [T3] }
     duplicate_window_seconds: 60
     split_window_seconds: 3600
