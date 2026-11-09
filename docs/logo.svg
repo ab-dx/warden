@@ -1,13 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Warden">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1e6fd9"/>
-      <stop offset="1" stop-color="#0b3c8c"/>
-    </linearGradient>
+    <mask id="stub">
+      <rect width="128" height="128" fill="#fff"/>
+      <g fill="#000">
+        <circle cx="94" cy="26" r="3.2"/><circle cx="94" cy="38" r="3.2"/><circle cx="94" cy="50" r="3.2"/>
+        <circle cx="94" cy="62" r="3.2"/><circle cx="94" cy="74" r="3.2"/><circle cx="94" cy="86" r="3.2"/>
+        <circle cx="94" cy="98" r="3.2"/>
+      </g>
+    </mask>
   </defs>
-  <path d="M64 6 L112 24 V60 C112 90 92 112 64 122 C36 112 16 90 16 60 V24 Z" fill="url(#g)"/>
-  <path d="M64 16 L102 30.5 V60 C102 84 86.5 102 64 111 Z" fill="#ffffff" fill-opacity="0.12"/>
-  <rect x="38" y="50" width="52" height="34" rx="6" fill="none" stroke="#ffffff" stroke-width="6"/>
-  <path d="M50 50 V42 a14 14 0 0 1 28 0 V50" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
-  <path d="M54 67 l7 7 l13 -14" fill="none" stroke="#ffd34d" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="8" y="16" width="112" height="96" fill="#1b2440" mask="url(#stub)"/>
+  <path d="M22 40 L33 88 L48 56 L63 88 L74 40" fill="none" stroke="#e6ece3" stroke-width="9" stroke-linejoin="miter" stroke-linecap="square"/>
+  <path d="M103 44 V84" stroke="#e6ece3" stroke-width="5" stroke-linecap="square"/>
 </svg>

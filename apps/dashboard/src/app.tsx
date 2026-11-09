@@ -43,7 +43,7 @@ export function App() {
     <a
       href={href}
       aria-current={here ? 'page' : undefined}
-      className={`flex items-center gap-2 pb-1 ${here ? 'border-b-2 border-ink font-semibold' : 'text-ink-soft hover:text-ink'}`}
+      className={`semiwide flex items-center gap-2 pb-1 ${here ? 'border-b-2 border-ink font-semibold' : 'text-ink-soft hover:text-ink'}`}
     >
       {label}
       {count > 0 && (
@@ -60,11 +60,14 @@ export function App() {
     <div className="mx-auto max-w-[960px] px-4 pb-24 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pt-8 pb-3">
         <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
-          <h1 className="text-2xl font-bold tracking-tight">Warden</h1>
-          <nav className="flex gap-4 sm:gap-6">
+          <h1 className="wide flex items-center gap-2 text-2xl font-extrabold">
+            <img src="/mark.svg" alt="" width={30} height={30} />
+            Warden
+          </h1>
+          <nav className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-x-6">
             {tab('#/', 'Payments', page === 'home' || page === 'call', waiting)}
             {tab('#/mandates', 'Mandates', page === 'mandates')}
-            {tab('#/lab', 'Try it', page === 'lab')}
+            {tab('#/lab', 'Lab', page === 'lab')}
             {tab('#/bench', 'Benchmark', page === 'bench')}
           </nav>
         </div>
@@ -76,7 +79,7 @@ export function App() {
           }}
           className="text-sm text-ink-soft hover:text-ink"
         >
-          Sign out {me.data.user}
+          Sign out
         </button>
       </header>
       <main className="mt-8 space-y-12">

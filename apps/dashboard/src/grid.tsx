@@ -25,13 +25,15 @@ ModuleRegistry.registerModules([
 const theme = themeQuartz.withParams({
   fontFamily: 'inherit',
   fontSize: 15,
-  backgroundColor: '#f8faf8',
-  chromeBackgroundColor: '#edf1ee',
-  foregroundColor: '#1d2a3a',
-  headerTextColor: '#5a6977',
-  borderColor: '#c7d1cc',
-  accentColor: '#2445a0',
-  rowHoverColor: '#e6ece8',
+  backgroundColor: '#f6f8f2',
+  chromeBackgroundColor: '#e6ece3',
+  foregroundColor: '#1b2440',
+  headerTextColor: '#56607a',
+  borderColor: '#b9c6bc',
+  accentColor: '#23407a',
+  rowHoverColor: '#edf1e8',
+  borderRadius: 0,
+  wrapperBorderRadius: 0,
   wrapperBorder: false,
   headerFontWeight: 400,
 });
@@ -45,13 +47,20 @@ const statusLabel = (c: Call) =>
 const layers = (c: Call) =>
   [...new Set((c.reasons ?? []).map((r) => checkName(r.check)))].join(', ');
 
-export function ActivityGrid({ rows, open }: { rows: Call[]; open: (id: string) => void }) {
+// rows undefined while loading, so the grid shows its loading overlay rather than "no calls"
+export function ActivityGrid({
+  rows,
+  open,
+}: {
+  rows: Call[] | undefined;
+  open: (id: string) => void;
+}) {
   const [search, setSearch] = useState('');
   const cols: ColDef<Call>[] = [
     {
       headerName: 'When',
       flex: 1,
-      minWidth: 95,
+      minWidth: 90,
       valueGetter: ({ data }) => data?.receivedAt ?? data?.updatedAt ?? '',
       cellRenderer: ({ value }: { value: string }) => ago(value),
       sort: 'desc',
@@ -60,7 +69,7 @@ export function ActivityGrid({ rows, open }: { rows: Call[]; open: (id: string) 
     {
       headerName: 'Action',
       flex: 1,
-      minWidth: 95,
+      minWidth: 120,
       valueGetter: ({ data }) => toolName(data?.tool ?? 'unknown'),
       cellRenderer: ({ value, data }: { value: string; data?: Call }) => (
         <button
@@ -73,11 +82,11 @@ export function ActivityGrid({ rows, open }: { rows: Call[]; open: (id: string) 
       ),
     },
     { headerName: 'Agent', hide: true, flex: 1, minWidth: 105, field: 'agentId' },
-    { headerName: 'Payee or reference', flex: 3, minWidth: 180, field: 'counterparty' },
+    { headerName: 'Payee or reference', flex: 3, minWidth: 170, field: 'counterparty' },
     {
       headerName: 'Amount',
       flex: 1,
-      minWidth: 105,
+      minWidth: 100,
       valueGetter: ({ data }) => (data?.amount ? money(data.amount) : ''),
       comparator: (_a, _b, x, y) => {
         const d = cents(x.data) - cents(y.data);
@@ -88,7 +97,7 @@ export function ActivityGrid({ rows, open }: { rows: Call[]; open: (id: string) 
     {
       headerName: 'Result',
       flex: 1,
-      minWidth: 105,
+      minWidth: 140,
       valueGetter: ({ data }) => (data ? statusLabel(data) : ''),
       cellRenderer: ({ value, data }: { value: string; data?: Call }) => (
         <span className={`font-medium ${STATUS[data?.status ?? '']?.tone ?? 'text-ink-soft'}`}>
@@ -113,18 +122,19 @@ export function ActivityGrid({ rows, open }: { rows: Call[]; open: (id: string) 
   return (
     <div className="space-y-3">
       <label className="block max-w-sm text-sm text-ink-soft">
-        Search every column
+        Search
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="a payee, a reason code, Provenance…"
-          className="mt-1 w-full rounded-sm border border-rule bg-sheet px-3 py-2 text-ink"
+          placeholder="Payee, reason code or check"
+          className="mt-1 w-full border border-rule bg-sheet px-3 py-2 text-ink"
         />
       </label>
       <AgGridReact<Call>
         theme={theme}
-        rowData={rows}
+        rowData={rows ?? null}
+        loading={rows === undefined}
         columnDefs={cols}
         defaultColDef={{ filter: 'agTextColumnFilter', sortable: true, resizable: true }}
         getRowId={({ data }) => data.callId}
@@ -136,7 +146,7 @@ export function ActivityGrid({ rows, open }: { rows: Call[]; open: (id: string) 
         paginationPageSize={20}
         paginationPageSizeSelector={false}
         suppressCellFocus
-        overlayNoRowsTemplate="Your agent hasn't made any calls yet."
+        overlayNoRowsTemplate="No calls yet."
       />
     </div>
   );

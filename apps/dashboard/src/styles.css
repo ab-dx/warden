@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
+/* counterfoil: banknote paper, intaglio ink, rubber-stamp inks */
 @theme {
-  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
-  --color-paper: #edf1ee;
-  --color-sheet: #f8faf8;
-  --color-ink: #1d2a3a;
-  --color-ink-soft: #5a6977;
-  --color-rule: #c7d1cc;
-  --color-blue: #2445a0;
-  --color-held: #a8620c;
-  --color-paid: #1e6e47;
-  --color-refused: #a3261d;
+  --font-sans: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --color-paper: #e6ece3;
+  --color-sheet: #f6f8f2;
+  --color-ink: #1b2440;
+  --color-ink-soft: #56607a;
+  --color-rule: #b9c6bc;
+  --color-blue: #23407a;
+  --color-held: #9a5b08;
+  --color-paid: #1f6b45;
+  --color-refused: #a8231c;
 }
 
 html {
@@ -20,19 +21,75 @@ html {
   font-feature-settings: "tnum" 1;
 }
 
+/* archivo's width axis: extended for the wordmark, headings and figures, like printed cheques */
+.wide {
+  font-stretch: 125%;
+}
+.semiwide {
+  font-stretch: 112%;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-blue);
   outline-offset: 2px;
 }
 
-/* the fine wave lines of cheque security paper, only on a held payment */
-.security-paper {
+/* engraved guilloche band along the top of a cheque */
+.guilloche {
   background-color: var(--color-sheet);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12'%3E%3Cpath d='M0 6 Q15 0 30 6 T60 6 T90 6 T120 6' fill='none' stroke='%232445a0' stroke-opacity='0.07'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='14'%3E%3Cg fill='none' stroke='%2323407a' stroke-opacity='0.28' stroke-width='0.7'%3E%3Cpath d='M0 7 Q12 0 24 7 T48 7'/%3E%3Cpath d='M0 7 Q12 14 24 7 T48 7'/%3E%3Cpath d='M0 4 Q12 11 24 4 T48 4'/%3E%3Cpath d='M0 10 Q12 3 24 10 T48 10'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* the tear line between a cheque and its stub: punched holes on a dashed rule */
+.perforation {
+  background-image:
+    radial-gradient(circle, var(--color-paper) 3px, transparent 3.5px),
+    linear-gradient(var(--color-rule), var(--color-rule));
+  background-size:
+    8px 14px,
+    1px 100%;
+  background-repeat: repeat-y, no-repeat;
+  background-position:
+    center top,
+    center;
+}
+@media (max-width: 639px) {
+  .perforation {
+    background-image:
+      radial-gradient(circle, var(--color-paper) 3px, transparent 3.5px),
+      linear-gradient(90deg, var(--color-rule), var(--color-rule));
+    background-size:
+      14px 8px,
+      100% 1px;
+    background-repeat: repeat-x, no-repeat;
+  }
+}
+
+/* a rubber stamp: double rule, slightly askew, ink a little uneven */
+.stamp {
+  display: inline-block;
+  border: 3px double currentColor;
+  padding: 0.15rem 0.6rem;
+  font-stretch: 125%;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transform: rotate(-5deg);
+  opacity: 0.9;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.2 1.6'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .countdown {
     transition: width 1s linear;
+  }
+  /* the one moment of motion: a stamp landing when a result comes in */
+  .stamp-in {
+    animation: stamp-in 180ms ease-out;
+  }
+  @keyframes stamp-in {
+    from {
+      transform: rotate(-5deg) scale(1.35);
+      opacity: 0;
+    }
   }
 }
