@@ -22,14 +22,7 @@ Warden sits between an AI agent and PayPal as an MCP server, and checks every ca
 
 An agent that reads email, invoices or web pages can be talked into paying the wrong person. Warden assumes that will happen and makes it not matter: the agent never holds PayPal credentials, and every payment is decided by rules the agent can't change.
 
-```mermaid
-flowchart LR
-    A["AI agent"] -- MCP --> W{{"Warden"}}
-    W -- "inside the mandate" --> P["PayPal"]
-    W -- "outside it" --> O["Owner approves<br/>or rejects"]
-    O -- approved --> P
-    W -- "never allowed" --> X["Blocked, with<br/>a reason code"]
-```
+<p align="center"><img src="docs/diagrams/overview.png" alt="Agent calls go through Warden: inside the mandate they reach PayPal, outside it they wait for the owner, and never-allowed calls are blocked with a reason code."></p>
 
 > [!TIP]
 > For MCP clients that take a URL, adopting Warden is a one-line change: point the agent at Warden instead of PayPal.
@@ -55,28 +48,7 @@ flowchart LR
 
 ## How it works
 
-```mermaid
-flowchart TB
-    agent(["AI agent"]) -- MCP --> gw["edge-gateway"]
-    gw -- "untrusted tools" --> ext["inbox, web, other MCP servers"]
-    gw -- "payment intent" --> guard["guard-worker<br/><i>Temporal workflow per payment</i>"]
-
-    subgraph decide ["decide"]
-        judge["judge-service<br/><i>provenance, intent judge</i>"]
-        policy["policy-service<br/><i>Cedar, mandates, budget holds</i>"]
-    end
-    guard --> judge
-    guard --> policy
-    guard -- "forward exactly once" --> conn["paypal-connector<br/><i>only holder of PayPal credentials</i>"]
-    conn --> pp[("PayPal")]
-
-    subgraph events ["event stream (transactional outbox to Kafka)"]
-        ledger["ledger-service<br/><i>hash-chained ledger</i>"]
-        api["api + dashboard<br/><i>approvals, mandates, evidence</i>"]
-    end
-    gw & guard & policy -. events .-> events
-    api -- "approve / reject" --> guard
-```
+<p align="center"><img src="docs/diagrams/architecture.png" alt="Warden services: edge-gateway, guard-worker, judge-service, policy-service, paypal-connector, and the event stream feeding the ledger and dashboard."></p>
 
 - **edge-gateway** is the MCP endpoint agents connect to with a key. Reads pass straight through. A call that commits or moves money is turned into a payment intent (payee, amount, references). When the agent leaves an amount out, the gateway looks it up first: a refund with no amount is priced from its capture.
 - **guard-worker** runs each payment as a Temporal workflow. It reserves the amount against the budget, evaluates policy and waits for the owner if needed. It forwards the call to PayPal exactly once, then settles or releases the hold. If PayPal's answer is lost, the hold stays and the call is never retried, because the money may already have moved.
@@ -87,33 +59,7 @@ flowchart TB
 
 ### A held payment, step by step
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant A as Agent
-    participant G as edge-gateway
-    participant W as guard-worker
-    participant J as judge-service
-    participant P as policy-service
-    participant O as Owner (dashboard)
-    participant C as paypal-connector
-
-    A->>G: send_payout(attacker@…, $96)
-    G->>W: start workflow for the payment intent
-    W->>J: was this payee only seen in untrusted content?
-    J-->>W: yes: PAYEE_FROM_UNTRUSTED_CONTENT
-    W->>P: evaluate and reserve, with escalations
-    P-->>W: escalate: COUNTERPARTY_NOT_IN_MANDATE
-    W->>O: held for approval, with reasons
-    alt owner approves
-        O->>W: approve
-        W->>C: forward once
-        C-->>W: PayPal result
-        W-->>A: executed
-    else owner rejects or times out
-        W-->>A: denied, with reason codes
-    end
-```
+<p align="center"><img src="docs/diagrams/held-payment.png" alt="Sequence for a held payment: the judge flags an untrusted payee, policy escalates, the owner approves or rejects, and PayPal is called at most once."></p>
 
 ## Getting started
 
